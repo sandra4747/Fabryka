@@ -1,0 +1,12 @@
+# Ignorowanie katalogów i plików specyficznych dla VS Code
+.vscode/
+
+# Ignorowanie plików wynikowych i obiektowych
+*.o
+*.exe
+
+# Ignorowanie pliku binarnego (np. fabryka)
+fabryka
+
+# Ignorowanie pliku tekstowego magazyn.txt
+magazyn.txt
