@@ -10,3 +10,5 @@ fabryka
 
 # Ignorowanie pliku tekstowego magazyn.txt
 magazyn.txt
+
+*.o
