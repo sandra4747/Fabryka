@@ -20,9 +20,15 @@
 
 typedef struct {
     char magazyn[MAX_SPACE];  
+    
     char *x_delivery_addr;    // Wskaźnik na adres podzespołów X
     char *y_delivery_addr;    // Wskaźnik na adres podzespołów Y
     char *z_delivery_addr;    // Wskaźnik na adres podzespołów Z
+
+// Osobne wskaźniki dla montera
+    char *x_pickup_addr;      // Wskaźnik montera na adres podzespołów X
+    char *y_pickup_addr;      // Wskaźnik montera na adres podzespołów Y
+    char *z_pickup_addr;      // Wskaźnik montera na adres podzespołów Z
 } SharedMemory;
 
 void sem_op(int semid, int semnum, int op) {
