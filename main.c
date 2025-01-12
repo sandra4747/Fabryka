@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include "magazyn.h"
 #include "dostawca.h"
+#include "monter.h"
 
 int main() {
     // Tworzenie segmentu pamięci współdzielonej
@@ -19,30 +21,32 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // Przypisanie wskaźników do odpowiednich miejsc w tablicy magazynu
+    // Inicjalizacja pamięci magazynu (ustawienie wszystkich komórek na pustą wartość)
+    memset(shm->magazyn, '\0', MAX_SPACE);
+
+    // Inicjalizacja wskaźników do magazynu
+    shm->x_pickup_addr = &shm->magazyn[0];  // Pierwsza część magazynu
+    shm->y_pickup_addr = &shm->magazyn[MAX_SPACE / 6];  // Druga część magazynu
+    shm->z_pickup_addr = &shm->magazyn[MAX_SPACE / 2];  // Trzecia część magazynu
+
+    // Inicjalizacja wskaźników do dostaw
     shm->x_delivery_addr = &shm->magazyn[0];
     shm->y_delivery_addr = &shm->magazyn[MAX_SPACE / 6];
     shm->z_delivery_addr = &shm->magazyn[MAX_SPACE / 2];
 
-    // Tworzenie semaforów
-    int semid = semget(SHM_KEY, 3, 0666 | IPC_CREAT);
+    // Tworzenie semafora
+    int semid = semget(SHM_KEY, 1, 0666 | IPC_CREAT);
     if (semid == -1) {
         perror("semget");
         exit(EXIT_FAILURE);
     }
 
-    // Inicjalizacja semaforów
+    // Inicjalizacja semafora (1 - dostępny)
     semctl(semid, SEM_MUTEX, SETVAL, 1);
-    semctl(semid, SEM_EMPTY, SETVAL, MAX_SPACE);  // Początkowo dostępne miejsce w magazynie
-    semctl(semid, SEM_FULL, SETVAL, 0);  // Początkowo brak pełnych jednostek
 
-    pid_t pid_x, pid_y, pid_z;
+  pid_t pid_x, pid_y, pid_z, pid_a, pid_b;
 
-    // Tworzenie procesów dla dostawców X, Y, Z
-    if ((pid_x = fork()) == 0) {
-        dostawca(semid, shm, 'X');
-        exit(0);
-    }
+    // Tworzenie procesów 
 
     if ((pid_y = fork()) == 0) {
         dostawca(semid, shm, 'Y');
@@ -54,15 +58,36 @@ int main() {
         exit(0);
     }
 
-    // Czekaj na zakończenie procesów dziecka
-    if (waitpid(pid_x, NULL, 0) == -1) {
-        perror("waitpid pid_x");
+    if ((pid_a = fork()) == 0) {
+        monter(semid, shm, 'A');  
+        exit(0);
     }
+
+    if ((pid_x = fork()) == 0) {
+        dostawca(semid, shm, 'X');
+        exit(0);
+    }
+
+    if ((pid_b = fork()) == 0) {
+        monter(semid, shm, 'B');  
+        exit(0);
+    }
+
+    // Czekaj na zakończenie procesów dziecka
     if (waitpid(pid_y, NULL, 0) == -1) {
         perror("waitpid pid_y");
     }
     if (waitpid(pid_z, NULL, 0) == -1) {
         perror("waitpid pid_z");
+    }
+    if (waitpid(pid_a, NULL, 0) == -1) {
+        perror("waitpid pid_a");
+    }
+    if (waitpid(pid_x, NULL, 0) == -1) {
+        perror("waitpid pid_x");
+    }
+    if (waitpid(pid_b, NULL, 0) == -1) {
+        perror("waitpid pid_b");
     }
 
     // Sprzątanie zasobów

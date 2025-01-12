@@ -5,11 +5,9 @@
 #include <sys/sem.h>
 
 #define SEM_MUTEX 0
-#define SEM_EMPTY 1
-#define SEM_FULL 2
 
-#define SHM_KEY 1234
-#define SEM_KEY 5678
+#define SHM_KEY 1234567
+#define SEM_KEY 5678768
 #define MAX_SPACE 90
 
 #define UNIT_SIZE_X 1
