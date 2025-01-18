@@ -3,6 +3,7 @@
 
 #include <sys/shm.h>
 #include <sys/sem.h>
+#include <signal.h>
 
 #define SEM_MUTEX 0
 

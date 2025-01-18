@@ -3,9 +3,18 @@
 #include <unistd.h>
 #include "monter.h"
 #include "magazyn.h"
+#include "dyrektor.h"
+
+volatile int flag = 1;
+
+void handle_sigusr2(int sig) {
+    flag = 0;
+}
 
 void monter(int semid, SharedMemory *shm, char stanowisko) {
-    while (1) {
+    signal(SIGUSR2, handle_sigusr2);
+    while (flag) {
+
         usleep(rand() % 1000000 + 500000);  // Opóźnienie dostawy
 
         sem_op(semid, SEM_MUTEX, -1);  // Zablokuj dostęp do magazynu
@@ -83,4 +92,5 @@ void monter(int semid, SharedMemory *shm, char stanowisko) {
 
         sem_op(semid, SEM_MUTEX, 1);  // Odblokowanie dostępu do magazynu
     }
+    
 }

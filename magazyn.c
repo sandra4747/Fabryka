@@ -23,3 +23,4 @@ void cleanup(int semid, int shmid, SharedMemory *shm) {
         exit(EXIT_FAILURE);
     }
 }
+

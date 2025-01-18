@@ -6,6 +6,7 @@
 #include "magazyn.h"
 #include "dostawca.h"
 #include "monter.h"
+#include "dyrektor.h"
 
 int main() {
     // Tworzenie segmentu pamięci współdzielonej
@@ -21,8 +22,15 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // Inicjalizacja pamięci magazynu (ustawienie wszystkich komórek na pustą wartość)
-    memset(shm->magazyn, '\0', MAX_SPACE);
+    // Inicjalizacja pamięci magazynu 
+    FILE *file = fopen("magazyn.txt", "rb");  // Otwieramy plik w trybie binarnym
+    if (file) {
+        fread(shm->magazyn, 1, MAX_SPACE, file);  // Wczytujemy dane do magazynu
+        fclose(file);
+        printf("Stan magazynu wczytany z magazyn.txt.\n");
+    } else {
+        perror("Błąd odczytu stanu magazynu");
+    }
 
     // Inicjalizacja wskaźników do magazynu
     shm->x_pickup_addr = &shm->magazyn[0];  // Pierwsza część magazynu
@@ -44,9 +52,7 @@ int main() {
     // Inicjalizacja semafora (1 - dostępny)
     semctl(semid, SEM_MUTEX, SETVAL, 1);
 
-  pid_t pid_x, pid_y, pid_z, pid_a, pid_b;
-
-    // Tworzenie procesów 
+  pid_t pid_x, pid_y, pid_z, pid_a, pid_b, pid_dyr;
 
     if ((pid_y = fork()) == 0) {
         dostawca(semid, shm, 'Y');
@@ -72,26 +78,39 @@ int main() {
         monter(semid, shm, 'B');  
         exit(0);
     }
+    if ((pid_dyr = fork()) == 0) {
+        dyrektor(pid_x, pid_y, pid_z, pid_a, pid_b, shm);
+        exit(0);
+    }
 
     // Czekaj na zakończenie procesów dziecka
+
     if (waitpid(pid_y, NULL, 0) == -1) {
         perror("waitpid pid_y");
     }
+
     if (waitpid(pid_z, NULL, 0) == -1) {
         perror("waitpid pid_z");
     }
+
     if (waitpid(pid_a, NULL, 0) == -1) {
         perror("waitpid pid_a");
     }
+
     if (waitpid(pid_x, NULL, 0) == -1) {
         perror("waitpid pid_x");
     }
+
     if (waitpid(pid_b, NULL, 0) == -1) {
         perror("waitpid pid_b");
     }
 
+    if (waitpid(pid_dyr, NULL, 0) == -1) {
+        perror("waitpid pid_dyr");
+    }
+
     // Sprzątanie zasobów
-    cleanup(semid, shmid, shm);
+    cleanup(semid,shmid,shm);
 
     return 0;
 }

@@ -1,8 +1,8 @@
 all: fabryka
 
 # Główna aplikacja "fabryka"
-fabryka: dostawca.o magazyn.o main.o monter.o
-	gcc -o fabryka dostawca.o magazyn.o main.o monter.o -lpthread
+fabryka: dostawca.o magazyn.o main.o monter.o dyrektor.o
+	gcc -o fabryka dostawca.o magazyn.o main.o monter.o dyrektor.o -lpthread
 
 # Plik obiektowy dla dostawca.c
 dostawca.o: dostawca.c dostawca.h magazyn.h
@@ -20,6 +20,10 @@ main.o: main.c dostawca.h magazyn.h
 monter.o: monter.c magazyn.h monter.h
 	gcc -c monter.c
 
+# Plik obiektowy dla dyrektor.c
+dyrektor.o: dyrektor.c dyrektor.h magazyn.h
+	gcc -c dyrektor.c
+
 # Czyszczenie plików obiektowych
 clean:
-	rm -f dostawca.o magazyn.o main.o monter.o fabryka
+	rm -f dostawca.o magazyn.o main.o monter.o dyrektor.o fabryka

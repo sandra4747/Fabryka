@@ -3,9 +3,17 @@
 #include <unistd.h>
 #include "magazyn.h"
 #include "dostawca.h"
+#include "dyrektor.h"
+
+
 
 void dostawca(int semid, SharedMemory *shm, char type) {
+
+
+
     while (1) {
+
+
         usleep(rand() % 100000 + 500000);  // Opóźnienie dostawy (zmniejszone)
 
         sem_op(semid, SEM_MUTEX, -1);  // Zablokowanie dostępu do magazynu
@@ -77,4 +85,5 @@ void dostawca(int semid, SharedMemory *shm, char type) {
         // Odblokowanie dostępu do magazynu
         sem_op(semid, SEM_MUTEX, 1);
     }
+    
 }
