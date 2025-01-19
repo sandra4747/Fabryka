@@ -11,7 +11,8 @@
 
 #define SHM_KEY 1234567
 #define SEM_KEY 5678768
-#define MAX_SPACE 90
+#define RAW_MAX_SPACE 98  // Oryginalna wartość magazynu
+#define MAX_SPACE ((RAW_MAX_SPACE / 6) * 6)  // Dopasowanie do podzielności przez 6
 
 #define UNIT_SIZE_X 1
 #define UNIT_SIZE_Y 2

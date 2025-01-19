@@ -26,24 +26,21 @@ void cleanup(int semid, int shmid, SharedMemory *shm) {
 }
 
 int is_magazyn_full(SharedMemory *shm) {
-    // Sprawdź, czy w sekcji X nie ma już wolnego miejsca
     for (int i = 0; i < MAX_SPACE / 6; i += UNIT_SIZE_X) {
         if (shm->magazyn[i] == '\0') {
-            return 0;  // Magazyn niepełny (znaleziono wolne miejsce)
+            return 0; 
         }
     }
 
-    // Sprawdź, czy w sekcji Y nie ma już wolnego miejsca
     for (int i = MAX_SPACE / 6; i < MAX_SPACE / 2; i += UNIT_SIZE_Y) {
         if (shm->magazyn[i] == '\0') {
-            return 0;  // Magazyn niepełny (znaleziono wolne miejsce)
+            return 0;  
         }
     }
 
-    // Sprawdź, czy w sekcji Z nie ma już wolnego miejsca
     for (int i = MAX_SPACE / 2; i < MAX_SPACE; i += UNIT_SIZE_Z) {
         if (shm->magazyn[i] == '\0') {
-            return 0;  // Magazyn niepełny (znaleziono wolne miejsce)
+            return 0;  
         }
     }
 
@@ -51,10 +48,9 @@ int is_magazyn_full(SharedMemory *shm) {
 }
 
 int is_magazyn_empty(SharedMemory *shm) {
-    // Iteracja po wszystkich elementach magazynu
     for (int i = 0; i < MAX_SPACE; i++) {
         if (shm->magazyn[i] != '\0') {
-            return 0;  // Magazyn nie jest pusty (znaleziono element)
+            return 0;  
         }
     }
     return 1;  // Magazyn jest pusty

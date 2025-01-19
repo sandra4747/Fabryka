@@ -9,6 +9,7 @@
 #include "dyrektor.h"
 
 int main() {
+    
     // Tworzenie segmentu pamięci współdzielonej
     int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666 | IPC_CREAT);
     if (shmid == -1) {
@@ -32,24 +33,24 @@ int main() {
         perror("Błąd odczytu stanu magazynu");
     }
 
-    // Inicjalizacja wskaźników do magazynu
-    shm->x_pickup_addr = &shm->magazyn[0];  // Pierwsza część magazynu
-    shm->y_pickup_addr = &shm->magazyn[MAX_SPACE / 6];  // Druga część magazynu
-    shm->z_pickup_addr = &shm->magazyn[MAX_SPACE / 2];  // Trzecia część magazynu
+    // Inicjalizacja wskaźników do poboru komponentow
+    shm->x_pickup_addr = &shm->magazyn[0];  
+    shm->y_pickup_addr = &shm->magazyn[MAX_SPACE / 6];  
+    shm->z_pickup_addr = &shm->magazyn[MAX_SPACE / 2];  
 
     // Inicjalizacja wskaźników do dostaw
     shm->x_delivery_addr = &shm->magazyn[0];
     shm->y_delivery_addr = &shm->magazyn[MAX_SPACE / 6];
     shm->z_delivery_addr = &shm->magazyn[MAX_SPACE / 2];
 
-    // Tworzenie semafora
+    // Tworzenie semaforow
     int semid = semget(SHM_KEY, 3, 0666 | IPC_CREAT);
     if (semid == -1) {
         perror("semget");
         exit(EXIT_FAILURE);
     }
 
-    // Inicjalizacja semafora (1 - dostępny)
+    // Inicjalizacja semaforow 
     semctl(semid, SEM_MUTEX, SETVAL, 1);
 
     semctl(semid, SEM_MONTER_DONE, SETVAL, 2);
@@ -83,8 +84,9 @@ int main() {
         monter(semid, shm, 'B');  
         exit(0);
     }
+
     if ((pid_dyr = fork()) == 0) {
-        dyrektor(pid_x, pid_y, pid_z, pid_a, pid_b, shm);
+        dyrektor(semid, pid_x, pid_y, pid_z, pid_a, pid_b, shm);
         exit(0);
     }
 

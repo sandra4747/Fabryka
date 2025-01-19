@@ -17,70 +17,69 @@ void dostawca(int semid, SharedMemory *shm, char type) {
 
     while (flag_d) {
 
-        usleep(rand() % 300000 + 800000);  // Opóźnienie dostawy 
+        usleep(rand() % 600000 + 300000);  // Opóźnienie od 0.3 do 0.9 sekundy
 
         sem_op(semid, SEM_MUTEX, -1);  // Zablokowanie dostępu do magazynu
 
-        // Szukaj pierwszego wolnego miejsca w odpowiednich sekcjach
+        // Szukanie pierwszego wolnego miejsca w odpowiednich sekcjach
         if (type == 'X') {
-            // Sprawdź całą sekcję X
             while (shm->x_delivery_addr + UNIT_SIZE_X <= &shm->magazyn[MAX_SPACE / 6]) {
                 if (*shm->x_delivery_addr == '\0') {
-                    *shm->x_delivery_addr = 'X';  // Zapisz podzespół X
-                    shm->x_delivery_addr += UNIT_SIZE_X;  // Przesuń wskaźnik
+                    *shm->x_delivery_addr = 'X';  
+                    shm->x_delivery_addr += UNIT_SIZE_X;  
                     printf("Dostawca X: dostarczono jeden podzespół X.\n");
                     break;
                 }
                 shm->x_delivery_addr += UNIT_SIZE_X;
             }
 
-            shm->x_delivery_addr = &shm->magazyn[0];  // Resetuj wskaźnik
+            shm->x_delivery_addr = &shm->magazyn[0];  // Reset wskaźnika
 
         }
 
         else if (type == 'Y') {
-            // Sprawdź całą sekcję Y
             while (shm->y_delivery_addr + UNIT_SIZE_Y <= &shm->magazyn[MAX_SPACE / 2]) {
                 if (*shm->y_delivery_addr == '\0') {
-                    *shm->y_delivery_addr = 'Y';  // Zapisz podzespół Y
-                    shm->y_delivery_addr += UNIT_SIZE_Y;  // Przesuń wskaźnik
+                    *shm->y_delivery_addr = 'Y';  
+                    shm->y_delivery_addr += UNIT_SIZE_Y;  
                     printf("Dostawca Y: dostarczono jeden podzespół Y.\n");
                     break;
                 }
                 shm->y_delivery_addr += UNIT_SIZE_Y;
             }
 
-            shm->y_delivery_addr = &shm->magazyn[MAX_SPACE / 6];  // Resetuj wskaźnik dla Y
+            shm->y_delivery_addr = &shm->magazyn[MAX_SPACE / 6];  // Reset wskaźnika
 
         }
 
         else if (type == 'Z') {
-            // Sprawdź całą sekcję Z
             while (shm->z_delivery_addr + UNIT_SIZE_Z <= &shm->magazyn[MAX_SPACE]) {
                 if (*shm->z_delivery_addr == '\0') {
-                    *shm->z_delivery_addr = 'Z';  // Zapisz podzespół Z
-                    shm->z_delivery_addr += UNIT_SIZE_Z;  // Przesuń wskaźnik
+                    *shm->z_delivery_addr = 'Z';  
+                    shm->z_delivery_addr += UNIT_SIZE_Z;  
                     printf("Dostawca Z: dostarczono jeden podzespół Z.\n");
                     break;
                 }
                 shm->z_delivery_addr += UNIT_SIZE_Z;
             }
 
-            shm->z_delivery_addr = &shm->magazyn[MAX_SPACE / 2];  // Resetuj wskaźnik dla Z
+            shm->z_delivery_addr = &shm->magazyn[MAX_SPACE / 2];  // Reset wskaźnika
 
         }
 
         // Odblokowanie dostępu do magazynu
         sem_op(semid, SEM_MUTEX, 1);
 
-        if (is_magazyn_full(shm)) {  // Poprawnie wywołanie funkcji is_magazyn_full
-            if (semctl(semid, SEM_MONTER_DONE, GETVAL) == 0) {
+        // Sprawdzenie czy fabryka działa
+        if (semctl(semid, SEM_MONTER_DONE, GETVAL) == 0) {  
+            if (is_magazyn_full(shm)) {
                 printf("\033[34mKończę pracę! Brak miejsca w magazynie!\033[0m\n");
                 exit(0);
             }
         }
         
     }
+    // Dostawca kończy pracę, więc dekrementuje semafor
     sem_op(semid, SEM_DELIVERY_DONE, -1);
 
 }
