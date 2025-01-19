@@ -8,15 +8,22 @@
 #include "dyrektor.h"
 
 // Funkcja do zapisu stanu magazynu
-void save_magazyn_state(SharedMemory *shm) {
+int save_magazyn_state(SharedMemory *shm) {
     FILE *file = fopen("magazyn.txt", "wb");
-    if (file) {
-        fwrite(shm->magazyn, 1, MAX_SPACE, file);
-        fclose(file);
-        printf("Stan magazynu zapisany do magazyn.txt.\n");
-    } else {
-        perror("Błąd zapisu stanu magazynu");
+    if (!file) {
+        perror("Błąd otwarcia pliku");
+        return -1;  // Zwrócenie kodu błędu
     }
+
+    size_t written = fwrite(shm->magazyn, 1, MAX_SPACE, file);
+    if (written != MAX_SPACE) {
+        perror("Błąd zapisu stanu magazynu");
+        fclose(file);
+        return -2;  // Zwrócenie kodu błędu zapisu
+    }
+
+    fclose(file);
+    return 0;  // Sukces
 }
 
 // Funkcja wysyłająca sygnały do wszystkich procesów
@@ -66,18 +73,19 @@ void dyrektor(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b, S
         command = get_keypress();
 
         if (command == '1') {
-            printf("\033[1;31mDyrektor: Magazyn kończy pracę.\n\033[0m");
             kill(pid_x, SIGUSR1);
             kill(pid_y, SIGUSR1);
             kill(pid_z, SIGUSR1);
+            sleep(1);
+            printf("\033[1;31mDyrektor: Magazyn kończy pracę.\n\033[0m");
 
         } else if (command == '2') {
-            printf("\033[1;31mDyrektor: Fabryka kończy pracę.\n\033[0m");
             kill(pid_a, SIGUSR2);
             kill(pid_b, SIGUSR2);
+            sleep(1);
+            printf("\033[1;31mDyrektor: Fabryka kończy pracę.\n\033[0m");
 
         } else if (command == '3') {
-            printf("\033[1;31mDyrektor: Zapis stanu magazynu i zakończenie pracy.\n\033[0m");
 
             // Zapis stanu magazynu
             save_magazyn_state(shm);
@@ -85,11 +93,11 @@ void dyrektor(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b, S
             // Zatrzymanie wszystkich procesów
             send_signal_to_all_processes(pid_x, pid_y, pid_z, pid_a, pid_b, SIGTERM);
 
+            printf("\033[1;31mDyrektor: Zapis stanu magazynu i zakończenie pracy.\n\033[0m");
+
             exit(0);
 
         } else if (command == '4') {
-            printf("\033[1;31mDyrektor: Zakończenie pracy bez zapisu.\n\033[0m");
-
             // Wyzerowanie stanu magazynu
             memset(shm->magazyn, '\0', MAX_SPACE);
 
@@ -98,6 +106,8 @@ void dyrektor(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b, S
 
             // Zatrzymanie wszystkich procesów
             send_signal_to_all_processes(pid_x, pid_y, pid_z, pid_a, pid_b, SIGTERM);
+
+            printf("\033[1;31mDyrektor: Zakończenie pracy bez zapisu.\n\033[0m");
 
             exit(0);
         } else {

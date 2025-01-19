@@ -9,7 +9,6 @@
 
 void dostawca(int semid, SharedMemory *shm, char type);
 void handle_sigusr1(int sig);
-int is_magazyn_full(SharedMemory *shm);
 
 #endif
 

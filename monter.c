@@ -37,10 +37,7 @@ void monter(int semid, SharedMemory *shm, char stanowisko) {
         }
 
         if (!found_x) {
-            sem_op(semid, SEM_MUTEX, 1);  // Odblokowanie magazynu
             shm->x_pickup_addr = &shm->magazyn[0];  // Resetowanie wskaźnika w sekcji X
-            usleep(500000);  // Daj czas na dostawę
-            continue;  // Kontynuowanie pętli, aby czekać na dostawę
         }
 
         // Szukaj pierwszego dostępnego podzespołu w sekcji Y
@@ -56,10 +53,7 @@ void monter(int semid, SharedMemory *shm, char stanowisko) {
         }
 
         if (!found_y) {
-            sem_op(semid, SEM_MUTEX, 1);  // Odblokowanie magazynu
             shm->y_pickup_addr = &shm->magazyn[MAX_SPACE / 6];  // Resetowanie wskaźnika w sekcji Y
-            usleep(500000);  // Daj czas na dostawę
-            continue;  // Kontynuowanie pętli, aby czekać na dostawę
         }
 
         // Szukaj pierwszego dostępnego podzespołu w sekcji Z
@@ -75,10 +69,7 @@ void monter(int semid, SharedMemory *shm, char stanowisko) {
         }
 
         if (!found_z) {
-            sem_op(semid, SEM_MUTEX, 1);  // Odblokowanie magazynu
             shm->z_pickup_addr = &shm->magazyn[MAX_SPACE / 2];  // Resetowanie wskaźnika w sekcji Z
-            usleep(500000);  // Daj czas na dostawę
-            continue;  // Kontynuowanie pętli, aby czekać na dostawę
         }
 
         // Jeśli wszystkie podzespoły zostały znalezione, zakończ montaż
@@ -87,6 +78,14 @@ void monter(int semid, SharedMemory *shm, char stanowisko) {
         }
 
         sem_op(semid, SEM_MUTEX, 1);  // Odblokowanie dostępu do magazynu
+
+        if (is_magazyn_empty(shm)) {  
+            if (semctl(semid, SEM_DELIVERY_DONE, GETVAL) == 0) {
+                printf("\033[32mKończę pracę! Brak komponentów w magazynie!\033[0m\n");
+                exit(0);
+            }
+        }
+        
     }
         sem_op(semid, SEM_MONTER_DONE, -1);
 

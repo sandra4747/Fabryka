@@ -17,7 +17,7 @@ void dostawca(int semid, SharedMemory *shm, char type) {
 
     while (flag_d) {
 
-        usleep(rand() % 100000 + 1000000);  // Opóźnienie dostawy 
+        usleep(rand() % 300000 + 800000);  // Opóźnienie dostawy 
 
         sem_op(semid, SEM_MUTEX, -1);  // Zablokowanie dostępu do magazynu
 
@@ -75,12 +75,13 @@ void dostawca(int semid, SharedMemory *shm, char type) {
 
         if (is_magazyn_full(shm)) {  // Poprawnie wywołanie funkcji is_magazyn_full
             if (semctl(semid, SEM_MONTER_DONE, GETVAL) == 0) {
-                printf("Kończę pracę! Brak miejsca w magazynie!\n");
+                printf("\033[34mKończę pracę! Brak miejsca w magazynie!\033[0m\n");
                 exit(0);
             }
         }
         
     }
-    
+    sem_op(semid, SEM_DELIVERY_DONE, -1);
+
 }
 

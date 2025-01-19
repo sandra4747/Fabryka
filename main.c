@@ -43,7 +43,7 @@ int main() {
     shm->z_delivery_addr = &shm->magazyn[MAX_SPACE / 2];
 
     // Tworzenie semafora
-    int semid = semget(SHM_KEY, 2, 0666 | IPC_CREAT);
+    int semid = semget(SHM_KEY, 3, 0666 | IPC_CREAT);
     if (semid == -1) {
         perror("semget");
         exit(EXIT_FAILURE);
@@ -53,6 +53,8 @@ int main() {
     semctl(semid, SEM_MUTEX, SETVAL, 1);
 
     semctl(semid, SEM_MONTER_DONE, SETVAL, 2);
+
+    semctl(semid, SEM_DELIVERY_DONE, SETVAL, 3);
 
 
   pid_t pid_x, pid_y, pid_z, pid_a, pid_b, pid_dyr;

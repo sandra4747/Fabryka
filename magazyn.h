@@ -7,6 +7,7 @@
 
 #define SEM_MUTEX 0
 #define SEM_MONTER_DONE 1
+#define SEM_DELIVERY_DONE 2
 
 #define SHM_KEY 1234567
 #define SEM_KEY 5678768
