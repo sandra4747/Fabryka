@@ -61,20 +61,23 @@ void dyrektor(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b, S
     printf("4 - Zatrzymanie fabryki i magazynu bez zapisu stanu\n");
 
     while (1) {
+        
         // Oczekiwanie na naciśnięcie klawisza
         command = get_keypress();
 
         if (command == '1') {
-            printf("Dyrektor: Magazyn kończy pracę.\n");
+            printf("\033[1;31mDyrektor: Magazyn kończy pracę.\n\033[0m");
             kill(pid_x, SIGUSR1);
             kill(pid_y, SIGUSR1);
             kill(pid_z, SIGUSR1);
+
         } else if (command == '2') {
-            printf("Dyrektor: Fabryka kończy pracę.\n");
+            printf("\033[1;31mDyrektor: Fabryka kończy pracę.\n\033[0m");
             kill(pid_a, SIGUSR2);
             kill(pid_b, SIGUSR2);
+
         } else if (command == '3') {
-            printf("Dyrektor: Zapis stanu magazynu i zakończenie pracy.\n");
+            printf("\033[1;31mDyrektor: Zapis stanu magazynu i zakończenie pracy.\n\033[0m");
 
             // Zapis stanu magazynu
             save_magazyn_state(shm);
@@ -83,22 +86,22 @@ void dyrektor(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b, S
             send_signal_to_all_processes(pid_x, pid_y, pid_z, pid_a, pid_b, SIGTERM);
 
             exit(0);
+
         } else if (command == '4') {
-            printf("Dyrektor: Zakończenie pracy bez zapisu.\n");
+            printf("\033[1;31mDyrektor: Zakończenie pracy bez zapisu.\n\033[0m");
 
             // Wyzerowanie stanu magazynu
             memset(shm->magazyn, '\0', MAX_SPACE);
+
             // Zapis wyzerowanego stanu magazynu do pliku
             save_magazyn_state(shm);
-
-            printf("Dyrektor: Magazyn został opróżniony.\n");
 
             // Zatrzymanie wszystkich procesów
             send_signal_to_all_processes(pid_x, pid_y, pid_z, pid_a, pid_b, SIGTERM);
 
             exit(0);
         } else {
-            printf("Dyrektor: Nieznane polecenie. Spróbuj ponownie.\n");
+            printf("\033[1;31mDyrektor: Nieznane polecenie. Spróbuj ponownie.\n\033[0m");
         }
     }
 }

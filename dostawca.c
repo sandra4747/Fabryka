@@ -5,16 +5,19 @@
 #include "dostawca.h"
 #include "dyrektor.h"
 
+volatile int flag_d = 1;
 
+void handle_sigusr1(int sig) {
+    flag_d = 0;
+}
 
 void dostawca(int semid, SharedMemory *shm, char type) {
 
+    signal(SIGUSR1, handle_sigusr1);
 
+    while (flag_d) {
 
-    while (1) {
-
-
-        usleep(rand() % 100000 + 500000);  // Opóźnienie dostawy (zmniejszone)
+        usleep(rand() % 100000 + 1000000);  // Opóźnienie dostawy 
 
         sem_op(semid, SEM_MUTEX, -1);  // Zablokowanie dostępu do magazynu
 
@@ -31,13 +34,8 @@ void dostawca(int semid, SharedMemory *shm, char type) {
                 shm->x_delivery_addr += UNIT_SIZE_X;
             }
 
-            if (shm->x_delivery_addr >= &shm->magazyn[MAX_SPACE / 6]) {
-                printf("Dostawca X: Brak miejsca w sekcji X.\n");
-                shm->x_delivery_addr = &shm->magazyn[0];  // Resetuj wskaźnik, jeśli brak miejsca
-                sem_op(semid, SEM_MUTEX, 1);  // Odblokowanie magazynu
-                usleep(1000000);  // Dodatkowe czekanie, aby dać szansę monterowi na odbiór
-                continue;  // Czekaj na zwolnienie miejsca
-            }
+            shm->x_delivery_addr = &shm->magazyn[0];  // Resetuj wskaźnik
+
         }
 
         else if (type == 'Y') {
@@ -52,13 +50,8 @@ void dostawca(int semid, SharedMemory *shm, char type) {
                 shm->y_delivery_addr += UNIT_SIZE_Y;
             }
 
-            if (shm->y_delivery_addr >= &shm->magazyn[MAX_SPACE / 2]) {
-                printf("Dostawca Y: Brak miejsca w sekcji Y.\n");
-                shm->y_delivery_addr = &shm->magazyn[MAX_SPACE / 6];  // Resetuj wskaźnik dla Y
-                sem_op(semid, SEM_MUTEX, 1);  // Odblokowanie magazynu
-                usleep(1000000);  // Dodatkowe czekanie, aby dać szansę monterowi na odbiór
-                continue;  // Czekaj na zwolnienie miejsca
-            }
+            shm->y_delivery_addr = &shm->magazyn[MAX_SPACE / 6];  // Resetuj wskaźnik dla Y
+
         }
 
         else if (type == 'Z') {
@@ -73,17 +66,21 @@ void dostawca(int semid, SharedMemory *shm, char type) {
                 shm->z_delivery_addr += UNIT_SIZE_Z;
             }
 
-            if (shm->z_delivery_addr >= &shm->magazyn[MAX_SPACE]) {
-                printf("Dostawca Z: Brak miejsca w sekcji Z. Czekam...\n");
-                shm->z_delivery_addr = &shm->magazyn[MAX_SPACE / 2];  // Resetuj wskaźnik dla Z
-                sem_op(semid, SEM_MUTEX, 1);  // Odblokowanie magazynu
-                usleep(1000000);  // Dodatkowe czekanie, aby dać szansę monterowi na odbiór
-                continue;  // Czekaj na zwolnienie miejsca
-            }
+            shm->z_delivery_addr = &shm->magazyn[MAX_SPACE / 2];  // Resetuj wskaźnik dla Z
+
         }
 
         // Odblokowanie dostępu do magazynu
         sem_op(semid, SEM_MUTEX, 1);
+
+        if (is_magazyn_full(shm)) {  // Poprawnie wywołanie funkcji is_magazyn_full
+            if (semctl(semid, SEM_MONTER_DONE, GETVAL) == 0) {
+                printf("Kończę pracę! Brak miejsca w magazynie!\n");
+                exit(0);
+            }
+        }
+        
     }
     
 }
+

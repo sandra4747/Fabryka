@@ -6,6 +6,7 @@
 #include <signal.h>
 
 #define SEM_MUTEX 0
+#define SEM_MONTER_DONE 1
 
 #define SHM_KEY 1234567
 #define SEM_KEY 5678768
@@ -29,5 +30,8 @@ typedef struct {
 
 void sem_op(int semid, int semnum, int op);
 void cleanup(int semid, int shmid, SharedMemory *shm);
+int is_magazyn_empty(SharedMemory *shm);
+int is_magazyn_full(SharedMemory *shm);
+
 
 #endif
