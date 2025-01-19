@@ -17,7 +17,7 @@ void monter(int semid, SharedMemory *shm, char stanowisko) {
 
     while (flag_m) {
 
-       usleep(rand() % 1000000 + 900000);  // Opóźnienie dostawy
+        usleep(rand() % 500000 + 300000);  // Opóźnienie montazu w zakresie od 0.3 do 0.8 sekundy
 
         sem_op(semid, SEM_MUTEX, -1);  // Zablokowanie dostępu do magazynu
 

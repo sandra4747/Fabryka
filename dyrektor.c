@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <signal.h>
 #include <termios.h>
 #include <fcntl.h>
@@ -32,6 +33,20 @@ void send_signal_to_all_processes(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t p
     kill(pid_a, signal);
     kill(pid_x, signal);
     kill(pid_b, signal);
+
+    waitpid(pid_y, NULL, 0);
+    waitpid(pid_z, NULL, 0);
+    waitpid(pid_a, NULL, 0);
+    waitpid(pid_x, NULL, 0);
+    waitpid(pid_b, NULL, 0);
+
+    // // Czekanie na zakończenie procesow
+    // int pids[] = {pid_y, pid_z, pid_a, pid_x, pid_b}; 
+    // int num_processes = sizeof(pids) / sizeof(pids[0]); 
+
+    // for (int i = 0; i < num_processes; i++) {
+    //     waitpid(pids[i], NULL, 0); 
+    // }
 }
 
 // Funkcja odbierająca wciśnięty klawisz
@@ -86,11 +101,11 @@ void dyrektor(int semid, pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid
 
         } else if (command == '3') {
 
-            // Zapis stanu magazynu
-            save_magazyn_state(shm);
-
             // Zatrzymanie wszystkich procesów
             send_signal_to_all_processes(pid_x, pid_y, pid_z, pid_a, pid_b, SIGTERM);
+
+            // Zapis stanu magazynu
+            save_magazyn_state(shm);
 
             printf("\033[1;31mDyrektor: Zapis stanu magazynu i zakończenie pracy.\n\033[0m");
 
@@ -98,13 +113,13 @@ void dyrektor(int semid, pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid
 
         } else if (command == '4') {
 
+            // Zatrzymanie wszystkich procesów
+            send_signal_to_all_processes(pid_x, pid_y, pid_z, pid_a, pid_b, SIGTERM);
+
             // Czyszczenie magazynu
             memset(shm->magazyn, '\0', MAX_SPACE);
 
             save_magazyn_state(shm);
-
-            // Zatrzymanie wszystkich procesów
-            send_signal_to_all_processes(pid_x, pid_y, pid_z, pid_a, pid_b, SIGTERM);
 
             printf("\033[1;31mDyrektor: Zakończenie pracy bez zapisu.\n\033[0m");
 
