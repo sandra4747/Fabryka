@@ -8,11 +8,12 @@
 #include <unistd.h>
 #include "dyrektor.h"
 
-int save_magazyn_state(SharedMemory *shm) {
-
+int save_magazyn_state(SharedMemory *shm, int semid) {
+    sem_op(semid, SEM_MUTEX, -1); // Zablokowanie dostępu do magazynu
     FILE *file = fopen("magazyn.txt", "wb");
     if (!file) {
         perror("Błąd otwarcia pliku");
+        sem_op(semid, SEM_MUTEX, 1); // Odblokowanie magazynu
         return -1;  
     }
 
@@ -20,34 +21,31 @@ int save_magazyn_state(SharedMemory *shm) {
     if (written != MAX_SPACE) {
         perror("Błąd zapisu stanu magazynu");
         fclose(file);
+        sem_op(semid, SEM_MUTEX, 1); // Odblokowanie magazynu
         return -2;  
     }
 
     fclose(file);
+    sem_op(semid, SEM_MUTEX, 1); // Odblokowanie magazynu
     return 0;  // Sukces
 }
 
+
 void send_signal_to_all_processes(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b, int signal) {
+    kill(pid_x, signal);
     kill(pid_y, signal);
     kill(pid_z, signal);
     kill(pid_a, signal);
-    kill(pid_x, signal);
     kill(pid_b, signal);
 
+    // Oczekiwanie na zakończenie procesów
+    waitpid(pid_x, NULL, 0);
     waitpid(pid_y, NULL, 0);
     waitpid(pid_z, NULL, 0);
     waitpid(pid_a, NULL, 0);
-    waitpid(pid_x, NULL, 0);
     waitpid(pid_b, NULL, 0);
-
-    // // Czekanie na zakończenie procesow
-    // int pids[] = {pid_y, pid_z, pid_a, pid_x, pid_b}; 
-    // int num_processes = sizeof(pids) / sizeof(pids[0]); 
-
-    // for (int i = 0; i < num_processes; i++) {
-    //     waitpid(pids[i], NULL, 0); 
-    // }
 }
+
 
 // Funkcja odbierająca wciśnięty klawisz
 char get_keypress(void) {
@@ -105,7 +103,7 @@ void dyrektor(int semid, pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid
             send_signal_to_all_processes(pid_x, pid_y, pid_z, pid_a, pid_b, SIGTERM);
 
             // Zapis stanu magazynu
-            save_magazyn_state(shm);
+            save_magazyn_state(shm, semid);
 
             printf("\033[1;31mDyrektor: Zapis stanu magazynu i zakończenie pracy.\n\033[0m");
 
@@ -119,7 +117,7 @@ void dyrektor(int semid, pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid
             // Czyszczenie magazynu
             memset(shm->magazyn, '\0', MAX_SPACE);
 
-            save_magazyn_state(shm);
+            save_magazyn_state(shm, semid);
 
             printf("\033[1;31mDyrektor: Zakończenie pracy bez zapisu.\n\033[0m");
 

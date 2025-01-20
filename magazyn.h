@@ -32,7 +32,7 @@ typedef struct {
 
 void sem_op(int semid, int semnum, int op);
 void cleanup(int semid, int shmid, SharedMemory *shm);
-int is_magazyn_empty(SharedMemory *shm);
+int is_any_section_empty(SharedMemory *shm);
 int is_magazyn_full(SharedMemory *shm);
 
 

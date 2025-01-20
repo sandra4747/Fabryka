@@ -2,18 +2,21 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <time.h>
 #include "magazyn.h"
 #include "dostawca.h"
 
 volatile int flag_d = 1; // Flaga działania dostawcy
 
+// Obsługa sygnału zatrzymania (SIGUSR1)
 void handle_sigusr1(int sig) {
     flag_d = 0;
 }
 
+// Funkcja dostawcy
 void dostawca(int semid, SharedMemory *shm, char type) {
-    signal(SIGUSR1, handle_sigusr1); 
-
+    signal(SIGUSR1, handle_sigusr1); // Rejestracja obsługi sygnału
+    srand(time(NULL) ^ getpid());
     while (flag_d) {
         usleep(rand() % 600000 + 300000); // Opóźnienie (0.3 - 0.9 s)
 
@@ -60,6 +63,4 @@ void dostawca(int semid, SharedMemory *shm, char type) {
 
     sem_op(semid, SEM_DELIVERY_DONE, -1); // Informacja o zakończeniu pracy dostawcy
 }
-
-
 
