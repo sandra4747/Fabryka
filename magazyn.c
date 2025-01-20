@@ -48,26 +48,32 @@ int is_magazyn_full(SharedMemory *shm) {
 }
 
 int is_any_section_empty(SharedMemory *shm) {
+    int x_empty = 1, y_empty = 1, z_empty = 1;
+
     // Sprawdzenie sekcji X
     for (int i = 0; i < MAX_SPACE / 6; i += UNIT_SIZE_X) {
-        if (shm->magazyn[i] == '\0') {  // Jeśli znaleziono puste miejsce w sekcji X
-            return 1;  // Sekcja X jest pusta
+        if (shm->magazyn[i] == 'X') {
+            x_empty = 0;  // W sekcji X jest przynajmniej jeden komponent
+            break;
         }
     }
 
     // Sprawdzenie sekcji Y
     for (int i = MAX_SPACE / 6; i < MAX_SPACE / 2; i += UNIT_SIZE_Y) {
-        if (shm->magazyn[i] == '\0') {  // Jeśli znaleziono puste miejsce w sekcji Y
-            return 1;  // Sekcja Y jest pusta
+        if (shm->magazyn[i] == 'Y') {
+            y_empty = 0;  // W sekcji Y jest przynajmniej jeden komponent
+            break;
         }
     }
 
     // Sprawdzenie sekcji Z
     for (int i = MAX_SPACE / 2; i < MAX_SPACE; i += UNIT_SIZE_Z) {
-        if (shm->magazyn[i] == '\0') {  // Jeśli znaleziono puste miejsce w sekcji Z
-            return 1;  // Sekcja Z jest pusta
+        if (shm->magazyn[i] == 'Z') {
+            z_empty = 0;  // W sekcji Z jest przynajmniej jeden komponent
+            break;
         }
     }
 
-    return 0;  // Wszystkie sekcje są pełne
+    // Zwróć 1, jeśli którakolwiek sekcja jest całkowicie pusta
+    return x_empty || y_empty || z_empty;
 }

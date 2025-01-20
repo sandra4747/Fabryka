@@ -9,7 +9,9 @@
 #include "dyrektor.h"
 
 int save_magazyn_state(SharedMemory *shm, int semid) {
+
     sem_op(semid, SEM_MUTEX, -1); // Zablokowanie dostępu do magazynu
+    
     FILE *file = fopen("magazyn.txt", "wb");
     if (!file) {
         perror("Błąd otwarcia pliku");
