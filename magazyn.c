@@ -1,28 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/sem.h>
-#include <sys/shm.h>
+#include <string.h> 
 #include "magazyn.h"
 
 
+// Funkcja wykonująca operację na semaforach
 void sem_op(int semid, int semnum, int op) {
     struct sembuf operation = {semnum, op, 0};
-    semop(semid, &operation, 1);
+    check_error(semop(semid, &operation, 1) == -1, "Błąd przy operacji sem_op");
 }
 
+// Funkcja czyszcząca zasoby
 void cleanup(int semid, int shmid, SharedMemory *shm) {
-    if (shmdt(shm) == -1) {
-        perror("shmdt");
-        exit(EXIT_FAILURE);
-    }
-    if (shmctl(shmid, IPC_RMID, NULL) == -1) {
-        perror("shmctl");
-        exit(EXIT_FAILURE);
-    }
-    if (semctl(semid, 0, IPC_RMID) == -1) {
-        perror("semctl");
-        exit(EXIT_FAILURE);
-    }
+    check_error(shmdt(shm) == -1, "Błąd przy shmdt");  // Zakończenie pracy z pamięcią współdzieloną
+    check_error(shmctl(shmid, IPC_RMID, NULL) == -1, "Błąd przy shmctl");  // Usuwanie segmentu pamięci współdzielonej
+    check_error(semctl(semid, 0, IPC_RMID) == -1, "Błąd przy semctl");  // Usuwanie semaforów
 }
 
 int is_magazyn_full(SharedMemory *shm) {
@@ -76,4 +68,17 @@ int is_any_section_empty(SharedMemory *shm) {
 
     // Zwróć 1, jeśli którakolwiek sekcja jest całkowicie pusta
     return x_empty || y_empty || z_empty;
+}
+
+void check_error(int condition, const char *message) {
+    if (condition) {
+        // Sprawdź, czy errno zostało ustawione przez system
+        if (errno != 0) {
+            fprintf(stderr, "%s: %s\n", message, strerror(errno));
+        } else {
+            // Jeśli errno jest zerowe, używamy perror()
+            perror(message);
+        }
+        exit(EXIT_FAILURE);
+    }
 }

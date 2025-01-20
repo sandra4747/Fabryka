@@ -9,29 +9,19 @@
 #include "dyrektor.h"
 
 int main() {
-    
+
     // Tworzenie segmentu pamięci współdzielonej
     int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666 | IPC_CREAT);
-    if (shmid == -1) {
-        perror("shmget");
-        exit(EXIT_FAILURE);
-    }
+    check_error(shmid == -1, "Błąd przy tworzeniu segmentu pamięci");
 
     SharedMemory *shm = (SharedMemory *)shmat(shmid, NULL, 0);
-    if (shm == (void *)-1) {
-        perror("shmat");
-        exit(EXIT_FAILURE);
-    }
+    check_error(shm == (void *)-1, "Błąd przy dołączaniu segmentu pamięci");
 
     // Inicjalizacja pamięci magazynu 
     FILE *file = fopen("magazyn.txt", "rb");  // Otwieramy plik w trybie binarnym
-    if (file) {
-        fread(shm->magazyn, 1, MAX_SPACE, file);  // Wczytujemy dane do magazynu
-        fclose(file);
-        printf("Stan magazynu wczytany z magazyn.txt.\n");
-    } else {
-        perror("Błąd odczytu stanu magazynu");
-    }
+    check_error(file == NULL, "Błąd odczytu stanu magazynu");
+    fread(shm->magazyn, 1, MAX_SPACE, file);  // Wczytujemy dane do magazynu
+    fclose(file);
 
     // Inicjalizacja wskaźników do poboru komponentow
     shm->x_pickup_addr = &shm->magazyn[0];  
@@ -45,10 +35,7 @@ int main() {
 
     // Tworzenie semaforow
     int semid = semget(SHM_KEY, 3, 0666 | IPC_CREAT);
-    if (semid == -1) {
-        perror("semget");
-        exit(EXIT_FAILURE);
-    }
+    check_error(semid == -1, "Błąd przy semget");
 
     // Inicjalizacja semaforow 
     semctl(semid, SEM_MUTEX, SETVAL, 1);
@@ -58,37 +45,43 @@ int main() {
     semctl(semid, SEM_DELIVERY_DONE, SETVAL, 3);
 
 
-  pid_t pid_x, pid_y, pid_z, pid_a, pid_b, pid_dyr;
+    pid_t pid_x, pid_y, pid_z, pid_a, pid_b, pid_dyr;
 
     if ((pid_y = fork()) == 0) {
         dostawca(semid, shm, 'Y');
         exit(0);
     }
+    check_error(pid_y == -1, "Błąd przy fork() dla pid_y");
 
     if ((pid_z = fork()) == 0) {
         dostawca(semid, shm, 'Z');
         exit(0);
     }
+    check_error(pid_z == -1, "Błąd przy fork() dla pid_z");
 
     if ((pid_a = fork()) == 0) {
         monter(semid, shm, 'A');  
         exit(0);
     }
+    check_error(pid_a == -1, "Błąd przy fork() dla pid_a");
 
     if ((pid_x = fork()) == 0) {
         dostawca(semid, shm, 'X');
         exit(0);
     }
+    check_error(pid_x == -1, "Błąd przy fork() dla pid_x");
 
     if ((pid_b = fork()) == 0) {
         monter(semid, shm, 'B');  
         exit(0);
     }
+    check_error(pid_b == -1, "Błąd przy fork() dla pid_b");
 
     if ((pid_dyr = fork()) == 0) {
         dyrektor(semid, pid_x, pid_y, pid_z, pid_a, pid_b, shm);
         exit(0);
     }
+    check_error(pid_dyr == -1, "Błąd przy fork() dla pid_dyr");
 
     // Czekaj na zakończenie procesów dziecka
 

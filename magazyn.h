@@ -4,6 +4,7 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <signal.h>
+#include <errno.h>
 
 #define SEM_MUTEX 0
 #define SEM_MONTER_DONE 1
@@ -34,6 +35,6 @@ void sem_op(int semid, int semnum, int op);
 void cleanup(int semid, int shmid, SharedMemory *shm);
 int is_any_section_empty(SharedMemory *shm);
 int is_magazyn_full(SharedMemory *shm);
-
+void check_error(int condition, const char *message);
 
 #endif

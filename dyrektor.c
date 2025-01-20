@@ -8,25 +8,17 @@
 #include <unistd.h>
 #include "dyrektor.h"
 
+
 int save_magazyn_state(SharedMemory *shm, int semid) {
 
     sem_op(semid, SEM_MUTEX, -1); // Zablokowanie dostępu do magazynu
     
     FILE *file = fopen("magazyn.txt", "wb");
-    if (!file) {
-        perror("Błąd otwarcia pliku");
-        sem_op(semid, SEM_MUTEX, 1); // Odblokowanie magazynu
-        return -1;  
-    }
+    check_error(file == NULL, "Błąd otwarcia pliku");
 
     size_t written = fwrite(shm->magazyn, 1, MAX_SPACE, file);
-    if (written != MAX_SPACE) {
-        perror("Błąd zapisu stanu magazynu");
-        fclose(file);
-        sem_op(semid, SEM_MUTEX, 1); // Odblokowanie magazynu
-        return -2;  
-    }
-
+    check_error(written != MAX_SPACE, "Błąd zapisu stanu magazynu");
+    
     fclose(file);
     sem_op(semid, SEM_MUTEX, 1); // Odblokowanie magazynu
     return 0;  // Sukces
