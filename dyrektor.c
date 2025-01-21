@@ -9,10 +9,8 @@
 #include "dyrektor.h"
 
 
-int save_magazyn_state(SharedMemory *shm, int semid) {
+int save_magazyn_state(SharedMemory *shm) {
 
-    sem_op(semid, SEM_MUTEX, -1); // Zablokowanie dostępu do magazynu
-    
     FILE *file = fopen("magazyn.txt", "wb");
     check_error(file == NULL, "Błąd otwarcia pliku");
 
@@ -20,8 +18,6 @@ int save_magazyn_state(SharedMemory *shm, int semid) {
     check_error(written != MAX_SPACE, "Błąd zapisu stanu magazynu");
     
     fclose(file);
-
-    sem_op(semid, SEM_MUTEX, 1); // Odblokowanie magazynu
     
     return 0;  // Sukces
 }
@@ -44,6 +40,7 @@ void send_signal_to_all_processes(pid_t pids[], size_t num_pids, int signal) {
         if (is_process_alive(pids[i])) {
             check_error(kill(pids[i], signal) == -1, "Błąd przy wysyłaniu sygnału kill");
         }
+        waitpid(pids[i], NULL, 0);
     }
 }
 
@@ -102,9 +99,8 @@ void dyrektor(int semid, pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid
         } else if (command == '3') {
 
             send_signal_to_all_processes(pids, 5, SIGTERM);  // Wszystkie procesy
-            
             // Zapis stanu magazynu
-            save_magazyn_state(shm, semid);
+            save_magazyn_state(shm);
 
             printf("\033[1;31mDyrektor: Zapis stanu magazynu i zakończenie pracy.\n\033[0m");
 
@@ -113,10 +109,9 @@ void dyrektor(int semid, pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid
         } else if (command == '4') {
 
             send_signal_to_all_processes(pids, 5, SIGTERM);  // Wszystkie procesy
-
             // Czyszczenie magazynu
             memset(shm->magazyn, '\0', MAX_SPACE);
-            save_magazyn_state(shm, semid);
+            save_magazyn_state(shm);
 
             printf("\033[1;31mDyrektor: Zakończenie pracy bez zapisu.\n\033[0m");
 

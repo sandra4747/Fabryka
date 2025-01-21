@@ -7,8 +7,16 @@
 // Funkcja wykonująca operację na semaforach
 void sem_op(int semid, int semnum, int op) {
     struct sembuf operation = {semnum, op, 0};
-    check_error(semop(semid, &operation, 1) == -1, "Błąd przy operacji sem_op");
+    int result;
+
+    // Pętla, która ponawia operację semafora w przypadku błędu EINTR (przerwania przez sygnał)
+    do {
+        result = semop(semid, &operation, 1);
+    } while (result == -1 && errno == EINTR);  // Ponów operację, jeśli została przerwana
+
+    check_error(result == -1, "Błąd przy operacji sem_op");
 }
+
 
 // Funkcja czyszcząca zasoby
 void cleanup(int semid, int shmid, SharedMemory *shm) {
