@@ -15,7 +15,7 @@ void handle_sigusr1(int sig) {
 
 // Funkcja dostawcy
 void dostawca(int semid, SharedMemory *shm, char type) {
-    signal(SIGUSR1, handle_sigusr1); // Rejestracja obsługi sygnału
+check_error(signal(SIGUSR1, handle_sigusr1) == SIG_ERR, "Błąd przy ustawianiu handlera sygnału SIGUSR2");
     srand(time(NULL) ^ getpid());
     while (flag_d) {
         usleep(rand() % 600000 + 300000); // Opóźnienie (0.3 - 0.9 s)

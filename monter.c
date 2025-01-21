@@ -13,12 +13,15 @@ void handle_sigusr2(int sig) {
 }
 
 void monter(int semid, SharedMemory *shm, char stanowisko) {
-
-    signal(SIGUSR2, handle_sigusr2);
+    check_error(signal(SIGUSR2, handle_sigusr2) == SIG_ERR, "Błąd przy ustawianiu handlera sygnału SIGUSR2");
     srand(time(NULL) ^ getpid());
 
-    while (flag_m) {
+    // Wskaźniki lokalne dla każdego montera
+    char *monter_x_pickup_addr = shm->x_pickup_addr;
+    char *monter_y_pickup_addr = shm->y_pickup_addr;
+    char *monter_z_pickup_addr = shm->z_pickup_addr;
 
+    while (flag_m) {
         usleep(rand() % 500000 + 300000);  // Opóźnienie montażu w zakresie od 0.3 do 0.8 sekundy
 
         sem_op(semid, SEM_MUTEX, -1);  // Zablokowanie dostępu do magazynu
@@ -27,61 +30,58 @@ void monter(int semid, SharedMemory *shm, char stanowisko) {
         char *temp_x = NULL, *temp_y = NULL, *temp_z = NULL;
 
         // Szukanie komponentu X
-        while (shm->x_pickup_addr < &shm->magazyn[MAX_SPACE / 6]) {
-            if (*shm->x_pickup_addr == 'X') {
-                *shm->x_pickup_addr = '\0';  // Odbiór podzespołu X
-                temp_x = shm->x_pickup_addr;  // Zapisujemy adres komponentu X
-                shm->x_pickup_addr += UNIT_SIZE_X;  
+        while (monter_x_pickup_addr < &shm->magazyn[MAX_SPACE / 6]) {
+            if (*monter_x_pickup_addr == 'X') {
+                *monter_x_pickup_addr = '\0';  // Odbiór podzespołu X
+                temp_x = monter_x_pickup_addr;  // Zapisujemy adres komponentu X
                 found_x = 1;
                 break;
-            } else {
-                shm->x_pickup_addr += UNIT_SIZE_X;
             }
+            monter_x_pickup_addr += UNIT_SIZE_X;  // Zawsze przesuwamy wskaźnik
         }
 
-        if (!found_x) {
-            shm->x_pickup_addr = &shm->magazyn[0];  // Reset wskaźnika w sekcji X
+        // Warunki dla komponentu X
+        if (!found_x || monter_x_pickup_addr >= &shm->magazyn[MAX_SPACE / 6]) {
+            monter_x_pickup_addr = shm->x_pickup_addr;  // Reset wskaźnika w sekcji X
         }
 
         // Szukanie komponentu Y
-        while (shm->y_pickup_addr < &shm->magazyn[MAX_SPACE / 2]) {
-            if (*shm->y_pickup_addr == 'Y') {
-                *shm->y_pickup_addr = '\0';  // Odbiór podzespołu Y
-                temp_y = shm->y_pickup_addr;  // Zapisujemy adres komponentu Y
-                shm->y_pickup_addr += UNIT_SIZE_Y;  
+        while (monter_y_pickup_addr < &shm->magazyn[MAX_SPACE / 2]) {
+            if (*monter_y_pickup_addr == 'Y') {
+                *monter_y_pickup_addr = '\0';  // Odbiór podzespołu Y
+                temp_y = monter_y_pickup_addr;
                 found_y = 1;
                 break;
-            } else {
-                shm->y_pickup_addr += UNIT_SIZE_Y;
             }
+            monter_y_pickup_addr += UNIT_SIZE_Y;  // Zawsze przesuwamy wskaźnik
         }
 
-        if (!found_y) {
-            shm->y_pickup_addr = &shm->magazyn[MAX_SPACE / 6];  // Reset wskaźnika w sekcji Y
+        // Warunki dla komponentu Y
+        if (!found_y || monter_y_pickup_addr >= &shm->magazyn[MAX_SPACE / 2]) {
+            monter_y_pickup_addr = shm->y_pickup_addr;  // Reset wskaźnika w sekcji Y
         }
 
         // Szukanie komponentu Z
-        while (shm->z_pickup_addr < &shm->magazyn[MAX_SPACE]) {
-            if (*shm->z_pickup_addr == 'Z') {
-                *shm->z_pickup_addr = '\0';  // Odbiór podzespołu Z
-                temp_z = shm->z_pickup_addr;  // Zapisujemy adres komponentu Z
-                shm->z_pickup_addr += UNIT_SIZE_Z;  
+        while (monter_z_pickup_addr < &shm->magazyn[MAX_SPACE]) {
+            if (*monter_z_pickup_addr == 'Z') {
+                *monter_z_pickup_addr = '\0';  // Odbiór podzespołu Z
+                temp_z = monter_z_pickup_addr;
                 found_z = 1;
                 break;
-            } else {
-                shm->z_pickup_addr += UNIT_SIZE_Z;
             }
+            monter_z_pickup_addr += UNIT_SIZE_Z;  // Zawsze przesuwamy wskaźnik
         }
 
-        if (!found_z) {
-            shm->z_pickup_addr = &shm->magazyn[MAX_SPACE / 2];  // Reset wskaźnika w sekcji Z
+        // Warunki dla komponentu Z
+        if (!found_z || monter_z_pickup_addr >= &shm->magazyn[MAX_SPACE]) {
+            monter_z_pickup_addr = shm->z_pickup_addr;  // Reset wskaźnika w sekcji Z
         }
-
 
         // Jeśli znaleziono wszystkie komponenty, zmontowano produkt
         if (found_x && found_y && found_z) {
             printf("Monter %c: Zmontowano jeden produkt.\n", stanowisko);
         } else {
+            // Przywracamy komponenty, które nie zostały wzięte
             if (temp_x) {
                 *temp_x = 'X';  // Przywrócenie komponentu X
             }
@@ -98,7 +98,7 @@ void monter(int semid, SharedMemory *shm, char stanowisko) {
         // Sprawdzanie, czy magazyn jest pusty
         if (semctl(semid, SEM_DELIVERY_DONE, GETVAL) == 0) {  
             if (is_any_section_empty(shm)) {
-                printf("\033[32mKończę pracę! Brak komponentów w magazynie!\033[0m\n");
+                printf("\033[32mMonter %c: Kończę pracę! Brak komponentów w magazynie!\033[0m\n", stanowisko);
                 exit(0);
             }
         }
