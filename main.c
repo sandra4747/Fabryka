@@ -84,30 +84,12 @@ int main() {
     check_error(pid_dyr == -1, "Błąd przy fork() dla pid_dyr");
 
     // Czekaj na zakończenie procesów dziecka
-
-    if (waitpid(pid_y, NULL, 0) == -1) {
-        perror("waitpid pid_y");
-    }
-
-    if (waitpid(pid_z, NULL, 0) == -1) {
-        perror("waitpid pid_z");
-    }
-
-    if (waitpid(pid_a, NULL, 0) == -1) {
-        perror("waitpid pid_a");
-    }
-
-    if (waitpid(pid_x, NULL, 0) == -1) {
-        perror("waitpid pid_x");
-    }
-
-    if (waitpid(pid_b, NULL, 0) == -1) {
-        perror("waitpid pid_b");
-    }
-
-    if (waitpid(pid_dyr, NULL, 0) == -1) {
-        perror("waitpid pid_dyr");
-    }
+    check_error(waitpid(pid_y, NULL, 0) == -1, "Błąd przy waitpid dla pid_y");
+    check_error(waitpid(pid_z, NULL, 0) == -1, "Błąd przy waitpid dla pid_z");
+    check_error(waitpid(pid_a, NULL, 0) == -1, "Błąd przy waitpid dla pid_a");
+    check_error(waitpid(pid_x, NULL, 0) == -1, "Błąd przy waitpid dla pid_x");
+    check_error(waitpid(pid_b, NULL, 0) == -1, "Błąd przy waitpid dla pid_b");
+    check_error(waitpid(pid_dyr, NULL, 0) == -1, "Błąd przy waitpid dla pid_dyr");
 
     // Sprzątanie zasobów
     cleanup(semid,shmid,shm);
