@@ -20,24 +20,31 @@ int save_magazyn_state(SharedMemory *shm, int semid) {
     check_error(written != MAX_SPACE, "Błąd zapisu stanu magazynu");
     
     fclose(file);
+
     sem_op(semid, SEM_MUTEX, 1); // Odblokowanie magazynu
+    
     return 0;  // Sukces
 }
 
+int is_process_alive(pid_t pid) {
+    // Sprawdza, czy proces o PID istnieje
+    if (kill(pid, 0) == 0) {
+        return 1;  // Proces istnieje
+    } else if (errno == ESRCH) {
+        return 0;  // Proces nie istnieje
+    } else {
+        perror("Błąd sprawdzania procesu");
+        return -1;  // Inny błąd
+    }
+}
 
-void send_signal_to_all_processes(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b, int signal) {
-    kill(pid_x, signal);
-    kill(pid_y, signal);
-    kill(pid_z, signal);
-    kill(pid_a, signal);
-    kill(pid_b, signal);
-
-    // Oczekiwanie na zakończenie procesów
-    waitpid(pid_x, NULL, 0);
-    waitpid(pid_y, NULL, 0);
-    waitpid(pid_z, NULL, 0);
-    waitpid(pid_a, NULL, 0);
-    waitpid(pid_b, NULL, 0);
+void send_signal_to_all_processes(pid_t pids[], size_t num_pids, int signal) {
+    for (size_t i = 0; i < num_pids; i++) {
+        // Sprawdź, czy proces żyje przed wysłaniem sygnału
+        if (is_process_alive(pids[i])) {
+            check_error(kill(pids[i], signal) == -1, "Błąd przy wysyłaniu sygnału kill");
+        }
+    }
 }
 
 
@@ -73,29 +80,29 @@ void dyrektor(int semid, pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid
     printf("3 - Zatrzymanie fabryki i magazynu, zapis stanu magazynu\n");
     printf("4 - Zatrzymanie fabryki i magazynu bez zapisu stanu\n---------------------------------------------------\n\n");
 
+    pid_t pids[] = {pid_x, pid_y, pid_z, pid_a, pid_b};  // Tablica PID-ów procesów
+
     while (1) {
         
         // Oczekiwanie na wciśnięcie klawisza
         command = get_keypress();
 
         if (command == '1') {
-            kill(pid_x, SIGUSR1);
-            kill(pid_y, SIGUSR1);
-            kill(pid_z, SIGUSR1);
+
+            send_signal_to_all_processes(pids, 3, SIGUSR1);  // Procesy x, y, z (magazyn)
             while (semctl(semid, SEM_DELIVERY_DONE, GETVAL) != 0) { usleep(100); }
             printf("\033[1;31mDyrektor: Magazyn kończy pracę.\n\033[0m");
 
         } else if (command == '2') {
-            kill(pid_a, SIGUSR2);
-            kill(pid_b, SIGUSR2);
+
+            send_signal_to_all_processes(pids + 3, 2, SIGUSR2);  // Procesy a, b (fabryka)
             while (semctl(semid, SEM_MONTER_DONE, GETVAL) != 0) { usleep(100); }
             printf("\033[1;31mDyrektor: Fabryka kończy pracę.\n\033[0m");
 
         } else if (command == '3') {
 
-            // Zatrzymanie wszystkich procesów
-            send_signal_to_all_processes(pid_x, pid_y, pid_z, pid_a, pid_b, SIGTERM);
-
+            send_signal_to_all_processes(pids, 5, SIGTERM);  // Wszystkie procesy
+            
             // Zapis stanu magazynu
             save_magazyn_state(shm, semid);
 
@@ -105,12 +112,10 @@ void dyrektor(int semid, pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid
 
         } else if (command == '4') {
 
-            // Zatrzymanie wszystkich procesów
-            send_signal_to_all_processes(pid_x, pid_y, pid_z, pid_a, pid_b, SIGTERM);
+            send_signal_to_all_processes(pids, 5, SIGTERM);  // Wszystkie procesy
 
             // Czyszczenie magazynu
             memset(shm->magazyn, '\0', MAX_SPACE);
-
             save_magazyn_state(shm, semid);
 
             printf("\033[1;31mDyrektor: Zakończenie pracy bez zapisu.\n\033[0m");
