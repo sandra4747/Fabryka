@@ -23,10 +23,6 @@ int main() {
     fread(shm->magazyn, 1, MAX_SPACE, file);  // Wczytujemy dane do magazynu
     fclose(file);
 
-    // Inicjalizacja wskaźników do poboru komponentow
-    shm->x_pickup_addr = &shm->magazyn[0];  
-    shm->y_pickup_addr = &shm->magazyn[MAX_SPACE / 6];  
-    shm->z_pickup_addr = &shm->magazyn[MAX_SPACE / 2];  
 
     // Inicjalizacja wskaźników do dostaw
     shm->x_delivery_addr = &shm->magazyn[0];
@@ -47,41 +43,48 @@ int main() {
 
     pid_t pid_x, pid_y, pid_z, pid_a, pid_b, pid_dyr;
 
-    if ((pid_y = fork()) == 0) {
-        dostawca(semid, shm, 'Y');
-        exit(0);
-    }
-    check_error(pid_y == -1, "Błąd przy fork() dla pid_y");
+if ((pid_y = fork()) == 0) {
+    printf("Uruchomiono proces dostawcy Y\n");
+    dostawca('Y');
+    exit(0);
+}
+check_error(pid_y == -1, "Błąd przy fork() dla pid_y");
 
-    if ((pid_z = fork()) == 0) {
-        dostawca(semid, shm, 'Z');
-        exit(0);
-    }
-    check_error(pid_z == -1, "Błąd przy fork() dla pid_z");
+if ((pid_z = fork()) == 0) {
+    printf("Uruchomiono proces dostawcy Z\n");
+    dostawca('Z');
+    exit(0);
+}
+check_error(pid_z == -1, "Błąd przy fork() dla pid_z");
 
-    if ((pid_a = fork()) == 0) {
-        monter(semid, shm, 'A');  
-        exit(0);
-    }
-    check_error(pid_a == -1, "Błąd przy fork() dla pid_a");
+if ((pid_a = fork()) == 0) {
+    printf("Uruchomiono proces montera A\n");
+    monter('A');  
+    exit(0);
+}
+check_error(pid_a == -1, "Błąd przy fork() dla pid_a");
 
-    if ((pid_x = fork()) == 0) {
-        dostawca(semid, shm, 'X');
-        exit(0);
-    }
-    check_error(pid_x == -1, "Błąd przy fork() dla pid_x");
+if ((pid_x = fork()) == 0) {
+    printf("Uruchomiono proces dostawcy X\n");
+    dostawca('X');
+    exit(0);
+}
+check_error(pid_x == -1, "Błąd przy fork() dla pid_x");
 
-    if ((pid_b = fork()) == 0) {
-        monter(semid, shm, 'B');  
-        exit(0);
-    }
-    check_error(pid_b == -1, "Błąd przy fork() dla pid_b");
+if ((pid_b = fork()) == 0) {
+    printf("Uruchomiono proces montera B\n");
+    monter('B');  
+    exit(0);
+}
+check_error(pid_b == -1, "Błąd przy fork() dla pid_b");
 
-    if ((pid_dyr = fork()) == 0) {
-        dyrektor(semid, pid_x, pid_y, pid_z, pid_a, pid_b, shm);
-        exit(0);
-    }
-    check_error(pid_dyr == -1, "Błąd przy fork() dla pid_dyr");
+if ((pid_dyr = fork()) == 0) {
+    printf("Uruchomiono proces dyrektora\n");
+    dyrektor(pid_x, pid_y, pid_z, pid_a, pid_b);
+    exit(0);
+}
+check_error(pid_dyr == -1, "Błąd przy fork() dla pid_dyr");
+
 
     // Czekaj na zakończenie procesów dziecka
     check_error(waitpid(pid_y, NULL, 0) == -1, "Błąd przy waitpid dla pid_y");

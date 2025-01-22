@@ -7,7 +7,7 @@
 #include <sys/sem.h>
 #include "magazyn.h"  
 
-void dostawca(int semid, SharedMemory *shm, char type);
+void dostawca(char type);
 void handle_sigusr1(int sig);
 
 #endif

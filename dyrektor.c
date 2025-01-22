@@ -67,8 +67,18 @@ char get_keypress(void) {
     return ch;
 }
 
-void dyrektor(int semid, pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b, SharedMemory *shm) {
+void dyrektor(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b) {
     char command;
+
+    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666 | IPC_CREAT);
+    check_error(shmid == -1, "Błąd przy tworzeniu segmentu pamięci");
+
+    SharedMemory *shm = (SharedMemory *)shmat(shmid, NULL, 0);
+    check_error(shm == (void *)-1, "Błąd przy dołączaniu segmentu pamięci");
+
+    int semid = semget(SHM_KEY, 3, 0666 | IPC_CREAT);
+    check_error(semid == -1, "Błąd przy semget");
+
 
     // Wyświetlenie menu
     printf("\nDyrektor: Wybierz polecenie:\n");
@@ -121,4 +131,5 @@ void dyrektor(int semid, pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid
             printf("\033[1;31mDyrektor: Nieznane polecenie. Spróbuj ponownie.\n\033[0m");
         }
     }
+
 }

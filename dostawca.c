@@ -14,9 +14,19 @@ void handle_sigusr1(int sig) {
 }
 
 // Funkcja dostawcy
-void dostawca(int semid, SharedMemory *shm, char type) {
+void dostawca(char type) {
+    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666 | IPC_CREAT);
+    check_error(shmid == -1, "Błąd przy tworzeniu segmentu pamięci");
+
+    SharedMemory *shm = (SharedMemory *)shmat(shmid, NULL, 0);
+    check_error(shm == (void *)-1, "Błąd przy dołączaniu segmentu pamięci");
+
+    int semid = semget(SHM_KEY, 3, 0666 | IPC_CREAT);
+    check_error(semid == -1, "Błąd przy semget");
+
     check_error(signal(SIGUSR1, handle_sigusr1) == SIG_ERR, "Błąd przy ustawianiu handlera sygnału SIGUSR2");
     srand(time(NULL) ^ getpid());
+
     while (flag_d) {
         usleep(rand() % 600000 + 300000); // Opóźnienie (0.3 - 0.9 s)
 
@@ -62,5 +72,8 @@ void dostawca(int semid, SharedMemory *shm, char type) {
     }
 
     sem_op(semid, SEM_DELIVERY_DONE, -1); // Informacja o zakończeniu pracy dostawcy
+    check_error(shmdt(shm) == -1, "Błąd przy shmdt");  // Zakończenie pracy z pamięcią współdzieloną
+
+
 }
 

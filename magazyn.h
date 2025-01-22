@@ -25,10 +25,7 @@ typedef struct {
     char *x_delivery_addr;    
     char *y_delivery_addr;    
     char *z_delivery_addr;    
-
-    char *x_pickup_addr;      
-    char *y_pickup_addr;      
-    char *z_pickup_addr;      
+    
 } SharedMemory;
 
 void sem_op(int semid, int semnum, int op);

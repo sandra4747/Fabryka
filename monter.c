@@ -12,14 +12,24 @@ void handle_sigusr2(int sig) {
     flag_m = 0;
 }
 
-void monter(int semid, SharedMemory *shm, char stanowisko) {
+void monter(char stanowisko) {
+    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666 | IPC_CREAT);
+    check_error(shmid == -1, "Błąd przy tworzeniu segmentu pamięci");
+
+    SharedMemory *shm = (SharedMemory *)shmat(shmid, NULL, 0);
+    check_error(shm == (void *)-1, "Błąd przy dołączaniu segmentu pamięci");
+
+    int semid = semget(SHM_KEY, 3, 0666 | IPC_CREAT);
+    check_error(semid == -1, "Błąd przy semget");
+
     check_error(signal(SIGUSR2, handle_sigusr2) == SIG_ERR, "Błąd przy ustawianiu handlera sygnału SIGUSR2");
+    
     srand(time(NULL) ^ getpid());
 
     // Wskaźniki lokalne dla każdego montera
-    char *monter_x_pickup_addr = shm->x_pickup_addr;
-    char *monter_y_pickup_addr = shm->y_pickup_addr;
-    char *monter_z_pickup_addr = shm->z_pickup_addr;
+    char *monter_x_pickup_addr = &shm->magazyn[0];
+    char *monter_y_pickup_addr = &shm->magazyn[MAX_SPACE / 6];  
+    char *monter_z_pickup_addr = &shm->magazyn[MAX_SPACE / 2];
 
     while (flag_m) {
         usleep(rand() % 500000 + 300000);  // Opóźnienie montażu w zakresie od 0.3 do 0.8 sekundy
@@ -42,7 +52,7 @@ void monter(int semid, SharedMemory *shm, char stanowisko) {
 
         // Warunki dla komponentu X
         if (!found_x || monter_x_pickup_addr >= &shm->magazyn[MAX_SPACE / 6]) {
-            monter_x_pickup_addr = shm->x_pickup_addr;  // Reset wskaźnika w sekcji X
+            monter_x_pickup_addr = &shm->magazyn[0];  // Reset wskaźnika w sekcji X
         }
 
         // Szukanie komponentu Y
@@ -58,7 +68,7 @@ void monter(int semid, SharedMemory *shm, char stanowisko) {
 
         // Warunki dla komponentu Y
         if (!found_y || monter_y_pickup_addr >= &shm->magazyn[MAX_SPACE / 2]) {
-            monter_y_pickup_addr = shm->y_pickup_addr;  // Reset wskaźnika w sekcji Y
+            monter_y_pickup_addr = &shm->magazyn[MAX_SPACE / 6];  // Reset wskaźnika w sekcji Y
         }
 
         // Szukanie komponentu Z
@@ -74,7 +84,7 @@ void monter(int semid, SharedMemory *shm, char stanowisko) {
 
         // Warunki dla komponentu Z
         if (!found_z || monter_z_pickup_addr >= &shm->magazyn[MAX_SPACE]) {
-            monter_z_pickup_addr = shm->z_pickup_addr;  // Reset wskaźnika w sekcji Z
+            monter_z_pickup_addr = &shm->magazyn[MAX_SPACE / 2];;  // Reset wskaźnika w sekcji Z
         }
 
         // Jeśli znaleziono wszystkie komponenty, zmontowano produkt
@@ -106,4 +116,6 @@ void monter(int semid, SharedMemory *shm, char stanowisko) {
 
     // Monter kończy pracę, więc dekrementuje semafor
     sem_op(semid, SEM_MONTER_DONE, -1);
+    check_error(shmdt(shm) == -1, "Błąd przy shmdt");  // Zakończenie pracy z pamięcią współdzieloną
+
 }
