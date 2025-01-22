@@ -8,6 +8,28 @@
 #include <unistd.h>
 #include "dyrektor.h"
 
+// Globalna zmienna do przechowywania oryginalnych ustawień terminala
+struct termios original_termios;
+
+// Funkcja do przywracania oryginalnych ustawień terminala
+void restore_terminal_settings(void) {
+    tcsetattr(STDIN_FILENO, TCSANOW, &original_termios);
+}
+
+// Funkcja obsługująca sygnał SIGTSTP (wstrzymanie procesu)
+void handle_suspend(int sig) {
+    restore_terminal_settings();
+    signal(SIGTSTP, SIG_DFL); // Przywróć domyślne działanie SIGTSTP
+    raise(SIGTSTP); // Wykonaj domyślne działanie SIGTSTP
+}
+
+// Funkcja obsługująca sygnał SIGCONT (wznowienie procesu)
+void handle_continue(int sig) {
+    // Przywróć tryb niekanoniczny po wznowieniu
+    struct termios newt = original_termios;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+}
 
 int save_magazyn_state(SharedMemory *shm) {
 
@@ -44,7 +66,6 @@ void send_signal_to_all_processes(pid_t pids[], size_t num_pids, int signal) {
     }
 }
 
-
 // Funkcja odbierająca wciśnięty klawisz
 char get_keypress(void) {
     struct termios oldt, newt;
@@ -70,6 +91,14 @@ char get_keypress(void) {
 void dyrektor(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b) {
     char command;
 
+    // Pobierz oryginalne ustawienia terminala
+    tcgetattr(STDIN_FILENO, &original_termios);
+    atexit(restore_terminal_settings); // Przywróć ustawienia po zakończeniu programu
+
+    // Ustaw obsługę sygnałów
+    signal(SIGTSTP, handle_suspend);
+    signal(SIGCONT, handle_continue);
+
     int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666 | IPC_CREAT);
     check_error(shmid == -1, "Błąd przy tworzeniu segmentu pamięci");
 
@@ -78,7 +107,6 @@ void dyrektor(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b) {
 
     int semid = semget(SHM_KEY, 3, 0666 | IPC_CREAT);
     check_error(semid == -1, "Błąd przy semget");
-
 
     // Wyświetlenie menu
     printf("\nDyrektor: Wybierz polecenie:\n");
@@ -90,24 +118,20 @@ void dyrektor(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b) {
     pid_t pids[] = {pid_x, pid_y, pid_z, pid_a, pid_b};  // Tablica PID-ów procesów
 
     while (1) {
-        
         // Oczekiwanie na wciśnięcie klawisza
         command = get_keypress();
 
         if (command == '1') {
-
             send_signal_to_all_processes(pids, 3, SIGUSR1);  // Procesy x, y, z (magazyn)
             while (semctl(semid, SEM_DELIVERY_DONE, GETVAL) != 0) { usleep(100); }
             printf("\033[1;31mDyrektor: Magazyn kończy pracę.\n\033[0m");
 
         } else if (command == '2') {
-
             send_signal_to_all_processes(pids + 3, 2, SIGUSR2);  // Procesy a, b (fabryka)
             while (semctl(semid, SEM_MONTER_DONE, GETVAL) != 0) { usleep(100); }
             printf("\033[1;31mDyrektor: Fabryka kończy pracę.\n\033[0m");
 
         } else if (command == '3') {
-
             send_signal_to_all_processes(pids, 5, SIGTERM);  // Wszystkie procesy
             // Zapis stanu magazynu
             save_magazyn_state(shm);
@@ -117,7 +141,6 @@ void dyrektor(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b) {
             exit(0);
 
         } else if (command == '4') {
-
             send_signal_to_all_processes(pids, 5, SIGTERM);  // Wszystkie procesy
             // Czyszczenie magazynu
             memset(shm->magazyn, '\0', MAX_SPACE);
@@ -126,10 +149,9 @@ void dyrektor(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b) {
             printf("\033[1;31mDyrektor: Zakończenie pracy bez zapisu.\n\033[0m");
 
             exit(0);
-            
+
         } else {
             printf("\033[1;31mDyrektor: Nieznane polecenie. Spróbuj ponownie.\n\033[0m");
         }
     }
-
 }
