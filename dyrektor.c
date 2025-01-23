@@ -57,15 +57,19 @@ int is_process_alive(pid_t pid) {
     }
 }
 
+
 void send_signal_to_all_processes(pid_t pids[], size_t num_pids, int signal) {
     for (size_t i = 0; i < num_pids; i++) {
-        // Sprawdź, czy proces żyje przed wysłaniem sygnału
+        if (pids[i] == 0) {
+            // Ignoruj PID równy 0
+            continue;
+        }
         if (is_process_alive(pids[i])) {
             check_error(kill(pids[i], signal) == -1, "Błąd przy wysyłaniu sygnału kill");
         }
-        waitpid(pids[i], NULL, 0);
     }
 }
+
 
 // Funkcja odbierająca wciśnięty klawisz
 char get_keypress(void) {
@@ -89,7 +93,7 @@ char get_keypress(void) {
     return ch;
 }
 
-int main() {
+int main(int argc, char *argv[]) {    
     char command;
 
     // Pobierz oryginalne ustawienia terminala
@@ -111,14 +115,23 @@ int main() {
     int semid = semget(SHM_KEY, 3, 0666);  
     check_error(semid == -1, "Błąd przy semget");
 
+    // Przypisanie PID-ów z argumentów
+    if (argc < 6) {
+        fprintf(stderr, "Błąd: Niewystarczająca liczba argumentów. Oczekiwano 5 PID-ów.\n");
+        exit(1);
+    }
+
+    pid_t pids[5];
+    for (int i = 0; i < 5; i++) {
+        pids[i] = (pid_t)atoi(argv[i + 1]);
+    }
+
     // Wyświetlenie menu
     printf("\nDyrektor: Wybierz polecenie:\n");
     printf("1 - Zatrzymanie magazynu\n");
     printf("2 - Zatrzymanie fabryki\n");
     printf("3 - Zatrzymanie fabryki i magazynu, zapis stanu magazynu\n");
     printf("4 - Zatrzymanie fabryki i magazynu bez zapisu stanu\n---------------------------------------------------\n\n");
-
-    pid_t pids[] = {pid_x, pid_y, pid_z, pid_a, pid_b};  // Tablica PID-ów procesów
 
     while (1) {
         // Oczekiwanie na wciśnięcie klawisza
@@ -141,7 +154,7 @@ int main() {
 
             printf("\033[1;31mDyrektor: Zapis stanu magazynu i zakończenie pracy.\n\033[0m");
 
-            exit(0);
+            break;
 
         } else if (command == '4') {
             send_signal_to_all_processes(pids, 5, SIGTERM);  // Wszystkie procesy
@@ -151,10 +164,12 @@ int main() {
 
             printf("\033[1;31mDyrektor: Zakończenie pracy bez zapisu.\n\033[0m");
 
-            exit(0);
+            break;
 
         } else {
             printf("\033[1;31mDyrektor: Nieznane polecenie. Spróbuj ponownie.\n\033[0m");
         }
     }
+    check_error(shmdt(shm) == -1, "Błąd przy shmdt");  // Zakończenie pracy z pamięcią współdzieloną
+    exit(0);
 }

@@ -12,7 +12,7 @@
 
 #define SHM_KEY 1234567
 #define SEM_KEY 5678768
-#define RAW_MAX_SPACE 98  // Oryginalna wartość magazynu
+#define RAW_MAX_SPACE 100  // Oryginalna wartość magazynu
 #define MAX_SPACE ((RAW_MAX_SPACE / 6) * 6)  // Dopasowanie do podzielności przez 6
 
 #define UNIT_SIZE_X 1
@@ -20,11 +20,7 @@
 #define UNIT_SIZE_Z 3
 
 typedef struct {
-    char magazyn[MAX_SPACE];  
-    
-    char *x_delivery_addr;    
-    char *y_delivery_addr;    
-    char *z_delivery_addr;    
+    char magazyn[MAX_SPACE];      
     
 } SharedMemory;
 
@@ -33,7 +29,5 @@ void cleanup(int semid, int shmid, SharedMemory *shm);
 int is_any_section_empty(SharedMemory *shm);
 int is_magazyn_full(SharedMemory *shm);
 void check_error(int condition, const char *message);
-
-pid_t pid_x, pid_y, pid_z, pid_a, pid_b, pid_dyr;
 
 #endif

@@ -4,7 +4,7 @@
 #include <time.h>
 #include "monter.h"
 #include "magazyn.h"
-#include "dyrektor.h"
+
 
 volatile int flag_m = 1;
 
@@ -12,7 +12,6 @@ void handle_sigusr2(int sig) {
     flag_m = 0;
 }
 
-// Funkcja montera
 int main(int argc, char *argv[]) {
     check_error(argc != 2, "Błąd: niepoprawna liczba argumentów. Użycie: monter <A|B>");
 
@@ -31,7 +30,7 @@ int main(int argc, char *argv[]) {
     check_error(semid == -1, "Błąd przy semget");
 
     check_error(signal(SIGUSR2, handle_sigusr2) == SIG_ERR, "Błąd przy ustawianiu handlera sygnału SIGUSR2");
-    
+
     srand(time(NULL) ^ getpid());
 
     // Wskaźniki lokalne dla każdego montera
@@ -39,8 +38,9 @@ int main(int argc, char *argv[]) {
     char *monter_y_pickup_addr = &shm->magazyn[MAX_SPACE / 6];  
     char *monter_z_pickup_addr = &shm->magazyn[MAX_SPACE / 2];
 
+
     while (flag_m) {
-        usleep(rand() % 500000 + 300000);  // Opóźnienie montażu w zakresie od 0.3 do 0.8 sekundy
+       usleep(rand() % 500000 + 300000);  // Opóźnienie montażu w zakresie od 0.3 do 0.8 sekundy
 
         sem_op(semid, SEM_MUTEX, -1);  // Zablokowanie dostępu do magazynu
 
@@ -117,6 +117,7 @@ int main(int argc, char *argv[]) {
         if (semctl(semid, SEM_DELIVERY_DONE, GETVAL) == 0) {  
             if (is_any_section_empty(shm)) {
                 printf("\033[32mMonter %c: Kończę pracę! Brak komponentów w magazynie!\033[0m\n", stanowisko);
+                check_error(shmdt(shm) == -1, "Błąd przy shmdt");
                 exit(0);
             }
         }
