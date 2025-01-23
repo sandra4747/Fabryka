@@ -19,14 +19,14 @@ int main(int argc, char *argv[]) {
     check_error(stanowisko != 'A' && stanowisko != 'B', "Błąd: niepoprawny typ montera. Użycie: monter <A|B>");
 
     // Łączenie się z istniejącym segmentem pamięci współdzielonej
-    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666);
+    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0600);
     check_error(shmid == -1, "Błąd przy przyłączaniu segmentu pamięci");
 
     SharedMemory *shm = (SharedMemory *)shmat(shmid, NULL, 0);
     check_error(shm == (void *)-1, "Błąd przy dołączaniu segmentu pamięci");
 
     // Łączenie się z istniejącymi semaforami 
-    int semid = semget(SHM_KEY, 3, 0666);  
+    int semid = semget(SHM_KEY, 3, 0600);  
     check_error(semid == -1, "Błąd przy semget");
 
     check_error(signal(SIGUSR2, handle_sigusr2) == SIG_ERR, "Błąd przy ustawianiu handlera sygnału SIGUSR2");
@@ -55,10 +55,9 @@ int main(int argc, char *argv[]) {
                 found_x = 1;
                 break;
             }
-            monter_x_pickup_addr += UNIT_SIZE_X;  // Zawsze przesuwamy wskaźnik
+            monter_x_pickup_addr += UNIT_SIZE_X;  
         }
 
-        // Warunki dla komponentu X
         if (!found_x || monter_x_pickup_addr >= &shm->magazyn[MAX_SPACE / 6]) {
             monter_x_pickup_addr = &shm->magazyn[0];  // Reset wskaźnika w sekcji X
         }
@@ -71,12 +70,11 @@ int main(int argc, char *argv[]) {
                 found_y = 1;
                 break;
             }
-            monter_y_pickup_addr += UNIT_SIZE_Y;  // Zawsze przesuwamy wskaźnik
+            monter_y_pickup_addr += UNIT_SIZE_Y;  
         }
 
-        // Warunki dla komponentu Y
         if (!found_y || monter_y_pickup_addr >= &shm->magazyn[MAX_SPACE / 2]) {
-            monter_y_pickup_addr = &shm->magazyn[MAX_SPACE / 6];  // Reset wskaźnika w sekcji Y
+            monter_y_pickup_addr = &shm->magazyn[MAX_SPACE / 6];  
         }
 
         // Szukanie komponentu Z
@@ -87,10 +85,9 @@ int main(int argc, char *argv[]) {
                 found_z = 1;
                 break;
             }
-            monter_z_pickup_addr += UNIT_SIZE_Z;  // Zawsze przesuwamy wskaźnik
+            monter_z_pickup_addr += UNIT_SIZE_Z;  
         }
 
-        // Warunki dla komponentu Z
         if (!found_z || monter_z_pickup_addr >= &shm->magazyn[MAX_SPACE]) {
             monter_z_pickup_addr = &shm->magazyn[MAX_SPACE / 2];;  // Reset wskaźnika w sekcji Z
         }
@@ -99,21 +96,21 @@ int main(int argc, char *argv[]) {
         if (found_x && found_y && found_z) {
             printf("Monter %c: Zmontowano jeden produkt.\n", stanowisko);
         } else {
-            // Przywracamy komponenty, które nie zostały wzięte
+            // Przywracamy komponenty, które nie zostały wykorzystane
             if (temp_x) {
-                *temp_x = 'X';  // Przywrócenie komponentu X
+                *temp_x = 'X';  
             }
             if (temp_y) {
-                *temp_y = 'Y';  // Przywrócenie komponentu Y
+                *temp_y = 'Y';  
             }
             if (temp_z) {
-                *temp_z = 'Z';  // Przywrócenie komponentu Z
+                *temp_z = 'Z';  
             }
         }
 
         sem_op(semid, SEM_MUTEX, 1);  // Odblokowanie dostępu do magazynu
 
-        // Sprawdzanie, czy magazyn jest pusty
+        // Sprawdzanie, czy magazyn jest pusty, jeśli dostawcy zakończyli pracę
         if (semctl(semid, SEM_DELIVERY_DONE, GETVAL) == 0) {  
             if (is_any_section_empty(shm)) {
                 printf("\033[32mMonter %c: Kończę pracę! Brak komponentów w magazynie!\033[0m\n", stanowisko);

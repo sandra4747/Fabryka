@@ -6,14 +6,12 @@
 #include "magazyn.h"
 #include "dostawca.h"
 
-volatile int flag_d = 1; // Flaga działania dostawcy
+volatile int flag_d = 1; 
 
-// Obsługa sygnału zatrzymania (SIGUSR1)
 void handle_sigusr1(int sig) {
     flag_d = 0;
 }
 
-// Funkcja dostawcy
 int main(int argc, char *argv[]) {
     check_error(argc != 2, "Błąd: niepoprawna liczba argumentów. Użycie: dostawca <X|Y|Z>");
 
@@ -21,14 +19,14 @@ int main(int argc, char *argv[]) {
     check_error(type != 'X' && type != 'Y' && type != 'Z', "Błąd: niepoprawny typ dostawcy. Użycie: dostawca <X|Y|Z>");
 
     // Łączenie się z istniejącym segmentem pamięci współdzielonej
-    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666);
+    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0600);
     check_error(shmid == -1, "Błąd przy przyłączaniu segmentu pamięci");
 
     SharedMemory *shm = (SharedMemory *)shmat(shmid, NULL, 0);
     check_error(shm == (void *)-1, "Błąd przy dołączaniu segmentu pamięci");
 
     // Łączenie się z istniejącymi semaforami 
-    int semid = semget(SHM_KEY, 3, 0666);  
+    int semid = semget(SHM_KEY, 3, 0600);  
     check_error(semid == -1, "Błąd przy semget");
 
     check_error(signal(SIGUSR1, handle_sigusr1) == SIG_ERR, "Błąd przy ustawianiu handlera sygnału SIGUSR2");
@@ -53,7 +51,6 @@ int main(int argc, char *argv[]) {
                 
         sem_op(semid, SEM_MUTEX, -1);  // Próba zablokowania semafora
 
-        // Operacje na magazynie
         if (type == 'X') {
             if (*x_delivery_addr == '\0') {
                 *x_delivery_addr = 'X'; // Dodanie elementu X
@@ -85,7 +82,7 @@ int main(int argc, char *argv[]) {
         
         sem_op(semid, SEM_MUTEX, 1);  // Odblokowanie semafora
 
-        // Sprawdzenie stanu magazynu
+        // Sprawdzenie stanu magazynu, jeśli monterzy zakończyli pracę
         if (semctl(semid, SEM_MONTER_DONE, GETVAL) == 0) {  
             if (is_magazyn_full(shm)) {
                 printf("\033[34mKończę pracę! Brak miejsca w magazynie!\033[0m\n");

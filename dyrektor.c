@@ -17,14 +17,14 @@ void restore_terminal_settings(void) {
     tcsetattr(STDIN_FILENO, TCSANOW, &original_termios);
 }
 
-// Funkcja obsługująca sygnał SIGTSTP (wstrzymanie procesu)
+// Funkcja obsługująca sygnał SIGTSTP 
 void handle_suspend(int sig) {
     restore_terminal_settings();
-    signal(SIGTSTP, SIG_DFL); // Przywróć domyślne działanie SIGTSTP
+    signal(SIGTSTP, SIG_DFL); 
     raise(SIGTSTP); // Wykonaj domyślne działanie SIGTSTP
 }
 
-// Funkcja obsługująca sygnał SIGCONT (wznowienie procesu)
+// Funkcja obsługująca sygnał SIGCONT 
 void handle_continue(int sig) {
     // Przywróć tryb niekanoniczny po wznowieniu
     struct termios newt = original_termios;
@@ -96,23 +96,23 @@ char get_keypress(void) {
 int main(int argc, char *argv[]) {    
     char command;
 
-    // Pobierz oryginalne ustawienia terminala
+    // Pobrane oryginalne ustawienia terminala
     tcgetattr(STDIN_FILENO, &original_termios);
-    atexit(restore_terminal_settings); // Przywróć ustawienia po zakończeniu programu
+    atexit(restore_terminal_settings); // Przywrócenie ustawień po zakończeniu programu
 
-    // Ustaw obsługę sygnałów
+    // Ustawienie obsługi sygnałów
     signal(SIGTSTP, handle_suspend);
     signal(SIGCONT, handle_continue);
     
     // Łączenie się z istniejącym segmentem pamięci współdzielonej
-    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666);
+    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0600);
     check_error(shmid == -1, "Błąd przy przyłączaniu segmentu pamięci");
 
     SharedMemory *shm = (SharedMemory *)shmat(shmid, NULL, 0);
     check_error(shm == (void *)-1, "Błąd przy dołączaniu segmentu pamięci");
 
     // Łączenie się z istniejącymi semaforami 
-    int semid = semget(SHM_KEY, 3, 0666);  
+    int semid = semget(SHM_KEY, 3, 0600);  
     check_error(semid == -1, "Błąd przy semget");
 
     // Przypisanie PID-ów z argumentów
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
     printf("4 - Zatrzymanie fabryki i magazynu bez zapisu stanu\n---------------------------------------------------\n\n");
 
     while (1) {
-        // Oczekiwanie na wciśnięcie klawisza
+
         command = get_keypress();
 
         if (command == '1') {
@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
 
         } else if (command == '2') {
             send_signal_to_all_processes(pids + 3, 2, SIGUSR2);  // Procesy a, b (fabryka)
-            while (semctl(semid, SEM_MONTER_DONE, GETVAL) != 0) { usleep(100); }
+            while (semctl(semid, SEM_MONTER_DONE, GETVAL) != 0) { usleep(100);  }
             printf("\033[1;31mDyrektor: Fabryka kończy pracę.\n\033[0m");
 
         } else if (command == '3') {
@@ -158,7 +158,7 @@ int main(int argc, char *argv[]) {
 
         } else if (command == '4') {
             send_signal_to_all_processes(pids, 5, SIGTERM);  // Wszystkie procesy
-            // Czyszczenie magazynu
+            // Czyszczenie magazynu 
             memset(shm->magazyn, '\0', MAX_SPACE);
             save_magazyn_state(shm);
 
