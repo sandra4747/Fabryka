@@ -7,8 +7,6 @@
 #include <sys/sem.h>
 #include "magazyn.h"  
 
-void dostawca(char type);
 void handle_sigusr1(int sig);
 
 #endif
-

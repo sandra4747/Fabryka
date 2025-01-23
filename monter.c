@@ -12,14 +12,22 @@ void handle_sigusr2(int sig) {
     flag_m = 0;
 }
 
-void monter(char stanowisko) {
-    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666 | IPC_CREAT);
-    check_error(shmid == -1, "Błąd przy tworzeniu segmentu pamięci");
+// Funkcja montera
+int main(int argc, char *argv[]) {
+    check_error(argc != 2, "Błąd: niepoprawna liczba argumentów. Użycie: monter <A|B>");
+
+    char stanowisko = argv[1][0];
+    check_error(stanowisko != 'A' && stanowisko != 'B', "Błąd: niepoprawny typ montera. Użycie: monter <A|B>");
+
+    // Łączenie się z istniejącym segmentem pamięci współdzielonej
+    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666);
+    check_error(shmid == -1, "Błąd przy przyłączaniu segmentu pamięci");
 
     SharedMemory *shm = (SharedMemory *)shmat(shmid, NULL, 0);
     check_error(shm == (void *)-1, "Błąd przy dołączaniu segmentu pamięci");
 
-    int semid = semget(SHM_KEY, 3, 0666 | IPC_CREAT);
+    // Łączenie się z istniejącymi semaforami 
+    int semid = semget(SHM_KEY, 3, 0666);  
     check_error(semid == -1, "Błąd przy semget");
 
     check_error(signal(SIGUSR2, handle_sigusr2) == SIG_ERR, "Błąd przy ustawianiu handlera sygnału SIGUSR2");

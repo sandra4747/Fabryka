@@ -14,15 +14,23 @@ void handle_sigusr1(int sig) {
 }
 
 // Funkcja dostawcy
-void dostawca(char type) {
-    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666 | IPC_CREAT);
-    check_error(shmid == -1, "Błąd przy tworzeniu segmentu pamięci");
+int main(int argc, char *argv[]) {
+    check_error(argc != 2, "Błąd: niepoprawna liczba argumentów. Użycie: dostawca <X|Y|Z>");
+
+    char type = argv[1][0];
+    check_error(type != 'X' && type != 'Y' && type != 'Z', "Błąd: niepoprawny typ dostawcy. Użycie: dostawca <X|Y|Z>");
+
+    // Łączenie się z istniejącym segmentem pamięci współdzielonej
+    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666);
+    check_error(shmid == -1, "Błąd przy przyłączaniu segmentu pamięci");
 
     SharedMemory *shm = (SharedMemory *)shmat(shmid, NULL, 0);
     check_error(shm == (void *)-1, "Błąd przy dołączaniu segmentu pamięci");
 
-    int semid = semget(SHM_KEY, 3, 0666 | IPC_CREAT);
+    // Łączenie się z istniejącymi semaforami 
+    int semid = semget(SHM_KEY, 3, 0666);  
     check_error(semid == -1, "Błąd przy semget");
+
 
     check_error(signal(SIGUSR1, handle_sigusr1) == SIG_ERR, "Błąd przy ustawianiu handlera sygnału SIGUSR2");
     srand(time(NULL) ^ getpid());
@@ -76,4 +84,3 @@ void dostawca(char type) {
 
 
 }
-

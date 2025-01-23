@@ -34,4 +34,6 @@ int is_any_section_empty(SharedMemory *shm);
 int is_magazyn_full(SharedMemory *shm);
 void check_error(int condition, const char *message);
 
+pid_t pid_x, pid_y, pid_z, pid_a, pid_b, pid_dyr;
+
 #endif

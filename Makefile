@@ -1,29 +1,47 @@
-all: fabryka
+# Kompilator i flagi
+CC = gcc
+CFLAGS = -Wall -g
+LDFLAGS = 
 
-# Główna aplikacja "fabryka"
-fabryka: dostawca.o magazyn.o main.o monter.o dyrektor.o
-	gcc -o fabryka dostawca.o magazyn.o main.o monter.o dyrektor.o -lpthread
+# Pliki źródłowe
+SRCS = dostawca.c dyrektor.c monter.c magazyn.c
+HEADERS = dostawca.h dyrektor.h monter.h magazyn.h
 
-# Plik obiektowy dla dostawca.c
-dostawca.o: dostawca.c dostawca.h magazyn.h
-	gcc -c dostawca.c
+# Pliki obiektowe
+OBJS = magazyn.o
+DOSTAWCA_OBJS = dostawca.o $(OBJS)
+DYREKTOR_OBJS = dyrektor.o $(OBJS)
+MONTER_OBJS = monter.o $(OBJS)
 
-# Plik obiektowy dla magazyn.c
+# Programy wynikowe
+TARGETS = dostawca dyrektor monter
+
+# Reguła główna
+all: $(TARGETS)
+
+# Kompilacja dostawca
+dostawca: $(DOSTAWCA_OBJS)
+	$(CC) $(CFLAGS) -o $@ $^
+
+# Kompilacja dyrektor
+dyrektor: $(DYREKTOR_OBJS)
+	$(CC) $(CFLAGS) -o $@ $^
+
+# Kompilacja monter
+monter: $(MONTER_OBJS)
+	$(CC) $(CFLAGS) -o $@ $^
+
+# Kompilacja magazyn.o (bez maina)
 magazyn.o: magazyn.c magazyn.h
-	gcc -c magazyn.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Plik obiektowy dla main.c
-main.o: main.c dostawca.h magazyn.h
-	gcc -c main.c
+# Kompilacja poszczególnych plików obiektowych
+%.o: %.c $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Plik obiektowy dla monter.c
-monter.o: monter.c magazyn.h monter.h
-	gcc -c monter.c
-
-# Plik obiektowy dla dyrektor.c
-dyrektor.o: dyrektor.c dyrektor.h magazyn.h
-	gcc -c dyrektor.c
-
-# Czyszczenie plików obiektowych
+# Czyszczenie plików wynikowych
 clean:
-	rm -f dostawca.o magazyn.o main.o monter.o dyrektor.o fabryka
+	rm -f $(TARGETS) *.o
+
+# Phony targets
+.PHONY: all clean

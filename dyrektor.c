@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "dyrektor.h"
+#include "magazyn.h"
 
 // Globalna zmienna do przechowywania oryginalnych ustawień terminala
 struct termios original_termios;
@@ -88,7 +89,7 @@ char get_keypress(void) {
     return ch;
 }
 
-void dyrektor(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b) {
+int main() {
     char command;
 
     // Pobierz oryginalne ustawienia terminala
@@ -98,14 +99,16 @@ void dyrektor(pid_t pid_x, pid_t pid_y, pid_t pid_z, pid_t pid_a, pid_t pid_b) {
     // Ustaw obsługę sygnałów
     signal(SIGTSTP, handle_suspend);
     signal(SIGCONT, handle_continue);
-
-    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666 | IPC_CREAT);
-    check_error(shmid == -1, "Błąd przy tworzeniu segmentu pamięci");
+    
+    // Łączenie się z istniejącym segmentem pamięci współdzielonej
+    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666);
+    check_error(shmid == -1, "Błąd przy przyłączaniu segmentu pamięci");
 
     SharedMemory *shm = (SharedMemory *)shmat(shmid, NULL, 0);
     check_error(shm == (void *)-1, "Błąd przy dołączaniu segmentu pamięci");
 
-    int semid = semget(SHM_KEY, 3, 0666 | IPC_CREAT);
+    // Łączenie się z istniejącymi semaforami 
+    int semid = semget(SHM_KEY, 3, 0666);  
     check_error(semid == -1, "Błąd przy semget");
 
     // Wyświetlenie menu
