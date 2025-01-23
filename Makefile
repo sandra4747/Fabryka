@@ -16,7 +16,7 @@ DYREKTOR_OBJS = dyrektor.o magazyn.o
 MONTER_OBJS = monter.o magazyn.o
 
 # Programy wynikowe
-TARGETS = dostawca dyrektor monter fabryka main
+TARGETS = dostawca dyrektor monter main  # Usunięto fabryka
 
 # Reguła główna
 all: $(TARGETS)
@@ -31,10 +31,6 @@ dyrektor: $(DYREKTOR_OBJS)
 
 # Kompilacja monter
 monter: $(MONTER_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
-
-# Kompilacja fabryka
-fabryka: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Kompilacja main.o (czyli główny program)
