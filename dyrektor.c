@@ -101,8 +101,8 @@ int main(int argc, char *argv[]) {
     atexit(restore_terminal_settings); // Przywrócenie ustawień po zakończeniu programu
 
     // Ustawienie obsługi sygnałów
-    signal(SIGTSTP, handle_suspend);
-    signal(SIGCONT, handle_continue);
+    check_error(signal(SIGTSTP, handle_suspend) == SIG_ERR, "Błąd przy ustawianiu handlera sygnału SIGSTP");
+    check_error(signal(SIGCONT, handle_continue) == SIG_ERR, "Błąd przy ustawianiu handlera sygnału SIGCONT");
     
     // Łączenie się z istniejącym segmentem pamięci współdzielonej
     int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0600);
